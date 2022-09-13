@@ -1,0 +1,107 @@
+```
+List of role commands usable with Character Select. 
+Append "_remove" to the command to remove the respective role.
+
+Misc Roles:
+
+!smash_online - A pingable role for people looking to play online smash
+!practice - A pingable role for people looking to play in-person smash
+!nick - A pingable role people looking to play Nick All-Star Brawl
+!mafia - A pingable role for peope looking to play mafia
+!local - Role for if you're around the Cal Area
+!student - Role for if you go to CALU
+!alumni  - Role for if you are Cal U Alumni
+!social - A pingable role for people looking to hang outside of smash 
+!pgh - Role for if you're part of the PGH smash community
+
+
+Character Roles:
+
+!banjo 
+!bayonetta
+!bowser
+!bowser_jr.
+!byleth
+!cpt._falcon
+!chrom
+!cloud
+!corrin
+!daisy
+!dark_pit
+!dark_samus
+!king_dedede
+!diddy_kong
+!donkey_kong
+!dr._mario
+!duck_hunt
+!falco
+!fox
+!game_&_watch
+!ganondorf
+!greninja
+!hero
+!ice_climbers
+!ike
+!incineroar
+!inkling
+!isabelle
+!jigglypuff
+!joker
+!kazuya
+!ken
+!king K. Rool
+!kirby
+!link
+!little_mac
+!lucario
+!lucas
+!lucina
+!luigi
+!mario
+!marth
+!mega_man
+!meta_knight
+!mewtwo
+!mii_brawler
+!mii_gunner
+!mii_swordfighter
+!min_min
+!ness
+!olimar
+!pac-man
+!palutena
+!peach
+!pichu
+!pikachu
+!pit
+!pokemon_trainer
+!piranha Plant
+!pyra
+!random
+!richter
+!ridley
+!rob
+!robin
+!rosalina
+!roy
+!ryu
+!samus
+!sephiroth
+!sheik
+!shulk
+!simon
+!snake
+!sonic
+!sora
+!steve
+!terry
+!toon_link
+!villager
+!wario
+!wii_fit
+!wolf
+!yoshi
+!young_link
+!zelda
+!zero_suit_samus
+```
