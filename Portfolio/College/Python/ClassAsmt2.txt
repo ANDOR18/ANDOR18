@@ -1,0 +1,55 @@
+#Class Asmt #2
+#Program by Kevin Andor, Cole Stewart, and Cole Keffel
+
+
+
+#Excersise 1: Day of the Week
+
+day = int(input("Enter a number 1-7. ")) #asks for day of the week
+if day < 1 or day > 7: #if the number is greater than 7 or less than 0, invalid
+    print("Invalid input.")
+elif day == 1: #Monday
+    print("The first day of the week is Monday.")
+elif day == 2: #Tuesday
+    print("The second day of the week is Tuesday.")
+elif day == 3: #Wednesday
+    print("The third day of the week is Wednesday.")
+elif day == 4: #Thursday
+    print("The fourth day of the week is Thursday.")
+elif day == 5: #Friday
+    print("The fifth day of the week is Friday.")
+elif day == 6: #Saturday
+    print("The sixth day of the week is Saturday.")
+elif day == 7: #Sunday
+    print("The seventh day of the week is Sunday.")
+
+
+
+
+
+#Exercise 2: Areas of Rectangles
+    
+recw1 = int(input("Enter the width of rectangle 1: ")) #Takes the lengh and width of rectangle 1
+recl1 = int(input("Enter the length of rectangle 1: "))
+
+recw2 = int(input("Enter the width of rectangle 2: ")) #Takes the lengh and width of rectangle 2
+recl2 = int(input("Enter the length of rectangle 2: "))
+
+area1 = recw1 * recl1 #Calculates the area of rectangle 1
+area2 = recw2 * recl2 #Calculates the area of rectangle 2
+
+print("Area of rectangle 1 =", area1) #Prints the area for each rectangle
+print("Area of rectangle 2 =", area2)
+
+#Determines and prints a statement that says which area is bigger
+if area1 < area2:
+    print("The area of rectangle 2 is bigger.")
+elif area1 > area2:
+    print("The area of rectangle 1 is bigger.")
+elif area1 == area2:
+    print("Both areas are the same.")
+                  
+
+                  
+
+                  
