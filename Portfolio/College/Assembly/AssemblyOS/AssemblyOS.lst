@@ -1,0 +1,2436 @@
+Microsoft (R) Macro Assembler Version 14.24.28316.0	    03/31/20 16:49:20
+:: Assembly Language Programming Project 3 Operating Syste   Page 1 - 1
+
+
+				title: Assembly Language Programming Project 3 Operating System
+				; Group 2 Members-Nathaniel DeHart, Kevin Andor, and Matt Oblock
+
+				include Irvine32.inc
+			      C ; Include file for Irvine32.lib             (Irvine32.inc)
+			      C 
+			      C ;OPTION CASEMAP:NONE		; optional: make identifiers case-sensitive
+			      C 
+			      C INCLUDE SmallWin.inc		; MS-Windows prototypes, structures, and constants
+			      C .NOLIST
+			      C .LIST
+			      C 
+			      C INCLUDE VirtualKeys.inc
+			      C ; VirtualKeys.inc
+			      C .NOLIST
+			      C .LIST
+			      C 
+			      C 
+			      C .NOLIST
+			      C .LIST
+			      C 
+
+ 00000000			.data
+ = 00000032			INPUTLENGTH	equ 50
+ = 0000000E			RECORDLENGTH equ 14 ; Record data is stored in the following order: (job, priority, runtime, starttime, status)
+ = 00000008			JOBLENGTH equ 8
+ = 00000001			PRIORITYLENGTH equ 1
+ = 00000002			RUNTIMELENGTH equ 2
+ = 00000002			STARTTIMELENGTH equ 2
+ = 00000001			STATUSLENGTH equ 1
+ = 0000000A			RECORDNUM equ 10
+				; TOTALRECORDSLENGTH should always be equal to RECORDLENGTH times RECORDNUM
+ = 0000008C			TOTALRECORDSLENGTH equ 140
+ = 0000000A			ENTRYLENGTH equ 10
+ = 00000014			STEPPRINTLENGTH equ 20
+ 00000000 00000000		temp1 dword 0
+ 00000004 00000000		temp2 dword 0
+ 00000008 00000000		temp3 dword 0
+ 0000000C 00000000		temp4 dword 0
+ 00000010 00000000		temp5 dword 0
+ 00000014 00000000		inputTime dword 0
+ 00000018 00000000		recIndex dword 0
+ 0000001C 71 75 69 74 00	QUIT byte "quit", 0
+ 00000021 68 65 6C 70 00	HELP byte "help", 0
+ 00000026 6C 6F 61 64 00	LOAD byte "load", 0
+ 0000002B 72 75 6E 00		RUN byte "run", 0
+ 0000002F 68 6F 6C 64 00	HOLD byte "hold", 0
+ 00000034 6B 69 6C 6C 00	KILL byte "kill", 0
+ 00000039 73 68 6F 77 00	SHOW byte "show", 0
+ 0000003E 73 74 65 70 00	STEP byte "step", 0
+ 00000043 63 68 61 6E 67	CHANGE byte "change", 0
+	   65 00
+ 0000004A 0D 0A 00		newline byte 13, 10, 0
+ 0000004D 41 73 73 65 6D	welcome byte "Assembly OS Version 1.0", 13, 10, 0
+	   62 6C 79 20 4F
+	   53 20 56 65 72
+	   73 69 6F 6E 20
+	   31 2E 30 0D 0A
+	   00
+ 00000067 2D 2D 2D 2D 2D	menuPrompt byte "-----------------------MENU (Type ", 22h, "help", 22h, " for command list)-----------------------", 13, 10, 0
+	   2D 2D 2D 2D 2D
+	   2D 2D 2D 2D 2D
+	   2D 2D 2D 2D 2D
+	   2D 2D 2D 4D 45
+	   4E 55 20 28 54
+	   79 70 65 20 22
+	   68 65 6C 70 22
+	   20 66 6F 72 20
+	   63 6F 6D 6D 61
+	   6E 64 20 6C 69
+	   73 74 29 2D 2D
+	   2D 2D 2D 2D 2D
+	   2D 2D 2D 2D 2D
+	   2D 2D 2D 2D 2D
+	   2D 2D 2D 2D 2D
+	   2D 0D 0A 00
+ 000000BB 20 20 20 20 20	blankLine byte "             ", 0
+	   20 20 20 20 20
+	   20 20 20 00
+
+ 000000C9  00000032 [		input byte INPUTLENGTH dup(' ')
+	    20
+	   ]
+ 000000FB 00			endofinput byte 0
+ 000000FC  0000008C [		records byte TOTALRECORDSLENGTH dup(' ')
+	    20
+	   ]
+ 00000188 00			endofrecord byte 0
+ 00000189  0000000A [		entry byte ENTRYLENGTH dup(' ')
+	    20
+	   ]
+ 00000193 00			endofentry byte 0
+ 00000194 00000000		curJobIndex dword 0
+ 00000198 00000000		curPriSearch dword 0
+ 0000019C  00000014 [		stepPrintBuffer dword STEPPRINTLENGTH dup(0)
+	    00000000
+	   ]
+ 000001EC 00			endofstepprint byte 0
+ 000001ED 00000000		stepPrintIndex dword 0
+
+ 000001F1 00000000		tempResult sdword 0
+ 000001F5 00000000		wordLength dword 0
+ 000001F9 00000000		power dword 0
+ 000001FD 4E 61 6D 65 20	jobLabels byte "Name      Priority  Runtime   Starttime Status", 13, 10, 0
+	   20 20 20 20 20
+	   50 72 69 6F 72
+	   69 74 79 20 20
+	   52 75 6E 74 69
+	   6D 65 20 20 20
+	   53 74 61 72 74
+	   74 69 6D 65 20
+	   53 74 61 74 75
+	   73 0D 0A 00
+ 0000022E 30			startPriority byte "0"
+ 0000022F 33 35			startRuntime byte "35"
+ 00000231 33 35			startStarttime byte "35"
+ 00000233 48			holdStatus byte "H"
+ 00000234 41			availStatus byte "A"
+ 00000235 52			runStatus byte "R"
+ 00000236 00000000		systemClock dword 0
+ 0000023A 00000000		digits dword 0
+ 0000023E 00000000		loadTemp1 dword 0
+ 00000242 00000000		loadTemp2 dword 0
+ 00000246 00000000		loadTemp3 dword 0
+ 0000024A 00000000		curNameLngth dword 0
+ 0000024E 00000000		maxChars dword 0
+
+ 00000252 4E 6F 20 6A 6F	pJob byte "No job name was entered", 13, 10, 0
+	   62 20 6E 61 6D
+	   65 20 77 61 73
+	   20 65 6E 74 65
+	   72 65 64 0D 0A
+	   00
+ 0000026C 41 6E 20 69 6E	pPri byte "An invalid priority was entered", 13, 10, 0
+	   76 61 6C 69 64
+	   20 70 72 69 6F
+	   72 69 74 79 20
+	   77 61 73 20 65
+	   6E 74 65 72 65
+	   64 0D 0A 00
+ 0000028E 41 6E 20 69 6E	pRun byte "An invalid runtime was entered", 13, 10, 0
+	   76 61 6C 69 64
+	   20 72 75 6E 74
+	   69 6D 65 20 77
+	   61 73 20 65 6E
+	   74 65 72 65 64
+	   0D 0A 00
+ 000002AF 50 6C 65 61 73	pLoad byte "Please enter the load parameters, (job) (priority) (run-time): ", 0
+	   65 20 65 6E 74
+	   65 72 20 74 68
+	   65 20 6C 6F 61
+	   64 20 70 61 72
+	   61 6D 65 74 65
+	   72 73 2C 20 28
+	   6A 6F 62 29 20
+	   28 70 72 69 6F
+	   72 69 74 79 29
+	   20 28 72 75 6E
+	   2D 74 69 6D 65
+	   29 3A 20 00
+
+ 000002EF 51 55 49 54 3A	helpQuit byte "QUIT: Quits the program", 13, 10, 0
+	   20 51 75 69 74
+	   73 20 74 68 65
+	   20 70 72 6F 67
+	   72 61 6D 0D 0A
+	   00
+ 00000309 48 45 4C 50 3A	helpHelp byte "HELP: Gives list of commands", 13, 10, 0
+	   20 47 69 76 65
+	   73 20 6C 69 73
+	   74 20 6F 66 20
+	   63 6F 6D 6D 61
+	   6E 64 73 0D 0A
+	   00
+ 00000328 53 48 4F 57 3A	helpShow byte "SHOW: Displays every job that is currently in the queue", 13, 10, 0
+	   20 44 69 73 70
+	   6C 61 79 73 20
+	   65 76 65 72 79
+	   20 6A 6F 62 20
+	   74 68 61 74 20
+	   69 73 20 63 75
+	   72 72 65 6E 74
+	   6C 79 20 69 6E
+	   20 74 68 65 20
+	   71 75 65 75 65
+	   0D 0A 00
+ 00000362 52 55 4E 20 28	helpRun byte "RUN (job): Takes the name of a current job and changes its status from hold to run", 13, 10, 0
+	   6A 6F 62 29 3A
+	   20 54 61 6B 65
+	   73 20 74 68 65
+	   20 6E 61 6D 65
+	   20 6F 66 20 61
+	   20 63 75 72 72
+	   65 6E 74 20 6A
+	   6F 62 20 61 6E
+	   64 20 63 68 61
+	   6E 67 65 73 20
+	   69 74 73 20 73
+	   74 61 74 75 73
+	   20 66 72 6F 6D
+	   20 68 6F 6C 64
+	   20 74 6F 20 72
+	   75 6E 0D 0A 00
+ 000003B7 48 4F 4C 44 20	helpHold byte "HOLD (job): Takes the name of a current job and changes its staus from run to hold", 13, 10, 0
+	   28 6A 6F 62 29
+	   3A 20 54 61 6B
+	   65 73 20 74 68
+	   65 20 6E 61 6D
+	   65 20 6F 66 20
+	   61 20 63 75 72
+	   72 65 6E 74 20
+	   6A 6F 62 20 61
+	   6E 64 20 63 68
+	   61 6E 67 65 73
+	   20 69 74 73 20
+	   73 74 61 75 73
+	   20 66 72 6F 6D
+	   20 72 75 6E 20
+	   74 6F 20 68 6F
+	   6C 64 0D 0A 00
+ 0000040C 4B 49 4C 4C 20	helpKill byte "KILL (job): Terminates the job, the jobs status must be hold", 13, 10, 0
+	   28 6A 6F 62 29
+	   3A 20 54 65 72
+	   6D 69 6E 61 74
+	   65 73 20 74 68
+	   65 20 6A 6F 62
+	   2C 20 74 68 65
+	   20 6A 6F 62 73
+	   20 73 74 61 74
+	   75 73 20 6D 75
+	   73 74 20 62 65
+	   20 68 6F 6C 64
+	   0D 0A 00
+ 0000044B 53 54 45 50 20	helpStep byte "STEP (integer): Takes an integer and processes the jobs that many of steps", 13, 10, 0
+	   28 69 6E 74 65
+	   67 65 72 29 3A
+	   20 54 61 6B 65
+	   73 20 61 6E 20
+	   69 6E 74 65 67
+	   65 72 20 61 6E
+	   64 20 70 72 6F
+	   63 65 73 73 65
+	   73 20 74 68 65
+	   20 6A 6F 62 73
+	   20 74 68 61 74
+	   20 6D 61 6E 79
+	   20 6F 66 20 73
+	   74 65 70 73 0D
+	   0A 00
+ 00000498 43 48 41 4E 47	helpChange byte "CHANGE (job) (priority): Changes priority of the job entered to the integer value entered of 0 - 7", 13, 10, 0
+	   45 20 28 6A 6F
+	   62 29 20 28 70
+	   72 69 6F 72 69
+	   74 79 29 3A 20
+	   43 68 61 6E 67
+	   65 73 20 70 72
+	   69 6F 72 69 74
+	   79 20 6F 66 20
+	   74 68 65 20 6A
+	   6F 62 20 65 6E
+	   74 65 72 65 64
+	   20 74 6F 20 74
+	   68 65 20 69 6E
+	   74 65 67 65 72
+	   20 76 61 6C 75
+	   65 20 65 6E 74
+	   65 72 65 64 20
+	   6F 66 20 30 20
+	   2D 20 37 0D 0A
+	   00
+ 000004FD 4C 4F 41 44 20	helpLoad byte "LOAD (job) (priority) (run-time): Queues a job, job must be less than 9 characters, priority 0 - 7, and run-time 1 - 50", 13, 10, 0
+	   28 6A 6F 62 29
+	   20 28 70 72 69
+	   6F 72 69 74 79
+	   29 20 28 72 75
+	   6E 2D 74 69 6D
+	   65 29 3A 20 51
+	   75 65 75 65 73
+	   20 61 20 6A 6F
+	   62 2C 20 6A 6F
+	   62 20 6D 75 73
+	   74 20 62 65 20
+	   6C 65 73 73 20
+	   74 68 61 6E 20
+	   39 20 63 68 61
+	   72 61 63 74 65
+	   72 73 2C 20 70
+	   72 69 6F 72 69
+	   74 79 20 30 20
+	   2D 20 37 2C 20
+	   61 6E 64 20 72
+	   75 6E 2D 74 69
+	   6D 65 20 31 20
+	   2D 20 35 30 0D
+	   0A 00
+
+ 00000577 4E 6F 20 6A 6F	NoJobsR byte "No jobs are currenty in the run mode", 13, 10, 0
+	   62 73 20 61 72
+	   65 20 63 75 72
+	   72 65 6E 74 79
+	   20 69 6E 20 74
+	   68 65 20 72 75
+	   6E 20 6D 6F 64
+	   65 0D 0A 00
+ 0000059E 4A 6F 62 20 64	jobNotFound byte "Job does not exist", 13, 10, 0
+	   6F 65 73 20 6E
+	   6F 74 20 65 78
+	   69 73 74 0D 0A
+	   00
+ 000005B3 54 68 65 72 65	tooManyP byte "There were too many entries. EX: (job) (priority) (run-time)", 13, 10, 0
+	   20 77 65 72 65
+	   20 74 6F 6F 20
+	   6D 61 6E 79 20
+	   65 6E 74 72 69
+	   65 73 2E 20 45
+	   58 3A 20 28 6A
+	   6F 62 29 20 28
+	   70 72 69 6F 72
+	   69 74 79 29 20
+	   28 72 75 6E 2D
+	   74 69 6D 65 29
+	   0D 0A 00
+ 000005F2 54 68 65 72 65	noRecords byte "There are no jobs in the queue", 13, 10, 0
+	   20 61 72 65 20
+	   6E 6F 20 6A 6F
+	   62 73 20 69 6E
+	   20 74 68 65 20
+	   71 75 65 75 65
+	   0D 0A 00
+ 00000613 4A 6F 62 20 61	notUnique byte "Job already exists", 13, 10, 0
+	   6C 72 65 61 64
+	   79 20 65 78 69
+	   73 74 73 0D 0A
+	   00
+ 00000628 4E 6F 20 6A 6F	notAvailable byte "No jobs are available", 13, 10, 0
+	   62 73 20 61 72
+	   65 20 61 76 61
+	   69 6C 61 62 6C
+	   65 0D 0A 00
+ 00000640 41 20 6A 6F 62	notInHold byte "A job must be in the hold mode to kill", 13, 10, 0
+	   20 6D 75 73 74
+	   20 62 65 20 69
+	   6E 20 74 68 65
+	   20 68 6F 6C 64
+	   20 6D 6F 64 65
+	   20 74 6F 20 6B
+	   69 6C 6C 0D 0A
+	   00
+ 00000669 4E 6F 74 20 61	notPriority byte "Not a valid priority, must be between 0 - 7", 13, 10, 0 
+	   20 76 61 6C 69
+	   64 20 70 72 69
+	   6F 72 69 74 79
+	   2C 20 6D 75 73
+	   74 20 62 65 20
+	   62 65 74 77 65
+	   65 6E 20 30 20
+	   2D 20 37 0D 0A
+	   00
+ 00000697 4E 6F 74 20 61	notRunTime byte "Not a valid run-times, must be between 1- 50", 13, 10 , 0
+	   20 76 61 6C 69
+	   64 20 72 75 6E
+	   2D 74 69 6D 65
+	   73 2C 20 6D 75
+	   73 74 20 62 65
+	   20 62 65 74 77
+	   65 65 6E 20 31
+	   2D 20 35 30 0D
+	   0A 00
+ 000006C6 4E 6F 74 20 61	notStatus byte "Not a valid status, must be either H = (HOLD), or R = (RUN)", 13, 10, 0
+	   20 76 61 6C 69
+	   64 20 73 74 61
+	   74 75 73 2C 20
+	   6D 75 73 74 20
+	   62 65 20 65 69
+	   74 68 65 72 20
+	   48 20 3D 20 28
+	   48 4F 4C 44 29
+	   2C 20 6F 72 20
+	   52 20 3D 20 28
+	   52 55 4E 29 0D
+	   0A 00
+ 00000704 50 6C 65 61 73	notCommand byte "Please enter a valid command", 13, 10, 0
+	   65 20 65 6E 74
+	   65 72 20 61 20
+	   76 61 6C 69 64
+	   20 63 6F 6D 6D
+	   61 6E 64 0D 0A
+	   00
+ 00000723 4A 6F 62 20 68	jobTooLong byte "Job has too many characters, please enter a job with less than 9 characters", 13, 10, 0
+	   61 73 20 74 6F
+	   6F 20 6D 61 6E
+	   79 20 63 68 61
+	   72 61 63 74 65
+	   72 73 2C 20 70
+	   6C 65 61 73 65
+	   20 65 6E 74 65
+	   72 20 61 20 6A
+	   6F 62 20 77 69
+	   74 68 20 6C 65
+	   73 73 20 74 68
+	   61 6E 20 39 20
+	   63 68 61 72 61
+	   63 74 65 72 73
+	   0D 0A 00
+ 00000771 54 68 65 72 65	jobListFull byte "There are no more job slots available", 13, 10, 0
+	   20 61 72 65 20
+	   6E 6F 20 6D 6F
+	   72 65 20 6A 6F
+	   62 20 73 6C 6F
+	   74 73 20 61 76
+	   61 69 6C 61 62
+	   6C 65 0D 0A 00
+ 00000799 4E 6F 74 20 61	notStep byte "Not a valid step, must be and integer greater than 0", 13, 10, 0
+	   20 76 61 6C 69
+	   64 20 73 74 65
+	   70 2C 20 6D 75
+	   73 74 20 62 65
+	   20 61 6E 64 20
+	   69 6E 74 65 67
+	   65 72 20 67 72
+	   65 61 74 65 72
+	   20 74 68 61 6E
+	   20 30 0D 0A 00
+ 000007D0 20 68 61 73 20	finishedRun byte " has finished running", 13, 10, 0
+	   66 69 6E 69 73
+	   68 65 64 20 72
+	   75 6E 6E 69 6E
+	   67 0D 0A 00
+
+ 000007E8 27 73 20 6D 6F	mesgRUN byte "'s mode has been set to RUN at Time: ", 0
+	   64 65 20 68 61
+	   73 20 62 65 65
+	   6E 20 73 65 74
+	   20 74 6F 20 52
+	   55 4E 20 61 74
+	   20 54 69 6D 65
+	   3A 20 00
+ 0000080E 27 73 20 6D 6F	mesgHOLD byte "'s mode has been set to HOLD at Time: ", 0
+	   64 65 20 68 61
+	   73 20 62 65 65
+	   6E 20 73 65 74
+	   20 74 6F 20 48
+	   4F 4C 44 20 61
+	   74 20 54 69 6D
+	   65 3A 20 00
+ 00000835 20 68 61 73 20	mesgKILL byte " has been removed from the job queue at Time: ", 0
+	   62 65 65 6E 20
+	   72 65 6D 6F 76
+	   65 64 20 66 72
+	   6F 6D 20 74 68
+	   65 20 6A 6F 62
+	   20 71 75 65 75
+	   65 20 61 74 20
+	   54 69 6D 65 3A
+	   20 00
+ 00000864 27 73 20 70 72	mesgCHNG1 byte "'s priority has been changed to: ", 0
+	   69 6F 72 69 74
+	   79 20 68 61 73
+	   20 62 65 65 6E
+	   20 63 68 61 6E
+	   67 65 64 20 74
+	   6F 3A 20 00
+ 00000886 20 61 74 20 54	mesgCHNG2 byte " at Time: ", 0
+	   69 6D 65 3A 20
+	   00
+ 00000891 20 68 61 73 20	mesgLOAD byte " has been added to the job queue at Time: ", 0
+	   62 65 65 6E 20
+	   61 64 64 65 64
+	   20 74 6F 20 74
+	   68 65 20 6A 6F
+	   62 20 71 75 65
+	   75 65 20 61 74
+	   20 54 69 6D 65
+	   3A 20 00
+ 000008BC 20 68 61 73 20	mesgSTEP1 byte " has gone through ", 0
+	   67 6F 6E 65 20
+	   74 68 72 6F 75
+	   67 68 20 00
+ 000008CF 20 63 79 63 6C	mesgSTEP2 byte " cycles at Time: ", 0 
+	   65 73 20 61 74
+	   20 54 69 6D 65
+	   3A 20 00
+
+ 00000000			.code
+ 00000000			Main proc
+ 00000000  E8 00000088			call JobInit
+ 00000005  BA 0000004D R		mov edx, offset welcome
+ 0000000A  E8 00000000 E		call WriteString
+					; Takes text inputs and passes them on to CommandHandler
+ 0000000F				Menu:
+ 0000000F  BA 0000004A R			mov edx, offset newline
+ 00000014  E8 00000000 E			call WriteString
+ 00000019  BA 00000067 R			mov edx, offset menuPrompt
+ 0000001E  E8 00000000 E			call WriteString
+ 00000023  BA 0000004A R			mov edx, offset newline
+ 00000028  E8 00000000 E			call WriteString
+ 0000002D  B8 000000C9 R			mov eax, offset input
+ 00000032  B9 00000032				mov ecx, INPUTLENGTH
+ 00000037  E8 00001057				call ClearBuffer
+ 0000003C  B8 00000189 R			mov eax, offset entry
+ 00000041  B9 0000000A				mov ecx, ENTRYLENGTH
+ 00000046  E8 00001048				call ClearBuffer
+ 0000004B  BA 000000BB R			mov edx, offset blankline
+ 00000050  E8 00000000 E			call WriteString
+ 00000055  BA 000000C9 R			mov edx, offset input
+ 0000005A  B9 00000032				mov ecx, INPUTLENGTH
+ 0000005F  E8 00000000 E			call ReadString
+ 00000064  8B F2				mov esi, edx
+ 00000066  8B C8				mov ecx, eax
+ 00000068  BF 00000189 R			mov edi, offset entry
+ 0000006D  E8 00001000				call SkipSpace
+ 00000072  C7 05 0000024E R			mov maxChars, ENTRYLENGTH
+	   0000000A
+ 0000007C  E8 00000FBD				call GetString
+ 00000081  E8 00000CC4				call LowerCase
+ 00000086  E8 00000034				call CommandHandler
+ 0000008B  EB 82				jmp Menu
+
+					; "records" and gives each record starting values
+					; Sets the status to 'A' for available
+ 0000008D				JobInit:
+ 0000008D  C7 05 00000018 R			mov recIndex, 0
+	   00000000
+ 00000097  BF 000000FC R			mov edi, offset records
+ 0000009C					JobInitLoop:
+ 0000009C  81 3D 00000018 R				cmp recIndex, TOTALRECORDSLENGTH
+	   0000008C
+ 000000A6  7D 16					jge JobInitDone
+ 000000A8  B8 00000234 R				mov eax, offset availStatus
+ 000000AD  E8 00000D97					call SetStatus
+ 000000B2  83 05 00000018 R				add recIndex, RECORDLENGTH
+	   0E
+ 000000B9  83 C7 0E					add edi, RECORDLENGTH
+ 000000BC  EB DE					jmp JobInitLoop
+ 000000BE					JobInitDone:
+ 000000BE  C3						ret
+
+					; Calls the function that corresponds to the inputted command
+ 000000BF				CommandHandler:
+ 000000BF  89 0D 0000024A R			mov curNameLngth, ecx
+ 000000C5					StepCheck:
+ 000000C5  B9 00000004					mov ecx, LENGTHOF step - 1
+ 000000CA  3B 0D 0000024A R				cmp ecx, curNameLngth
+ 000000D0  75 16					jne RunCheck
+ 000000D2  8B DE					mov ebx, esi
+ 000000D4  8B C7					mov eax, edi
+ 000000D6  BE 0000003E R				mov esi, offset step
+ 000000DB  FC						cld
+ 000000DC  F3/ A6					repe cmpsb
+ 000000DE  8B F3					mov esi, ebx
+ 000000E0  8B F8					mov edi, eax
+ 000000E2  0F 84 000001C7				je StepCommand
+ 000000E8					RunCheck:
+ 000000E8  B9 00000003					mov ecx, LENGTHOF run - 1
+ 000000ED  3B 0D 0000024A R				cmp ecx, curNameLngth
+ 000000F3  75 16					jne LoadCheck
+ 000000F5  8B DE					mov ebx, esi
+ 000000F7  8B C7					mov eax, edi
+ 000000F9  BE 0000002B R				mov esi, offset run
+ 000000FE  FC						cld
+ 000000FF  F3/ A6					repe cmpsb
+ 00000101  8B F3					mov esi, ebx
+ 00000103  8B F8					mov edi, eax
+ 00000105  0F 84 00000544				je RunCommand
+ 0000010B					LoadCheck:
+ 0000010B  B9 00000004					mov ecx, LENGTHOF load - 1
+ 00000110  3B 0D 0000024A R				cmp ecx, curNameLngth
+ 00000116  75 16					jne ShowCheck
+ 00000118  8B DE					mov ebx, esi
+ 0000011A  8B C7					mov eax, edi
+ 0000011C  BE 00000026 R				mov esi, offset load
+ 00000121  FC						cld
+ 00000122  F3/ A6					repe cmpsb
+ 00000124  8B F3					mov esi, ebx
+ 00000126  8B F8					mov edi, eax
+ 00000128  0F 84 000005B5				je LoadCommand
+ 0000012E					ShowCheck:
+ 0000012E  B9 00000004					mov ecx, LENGTHOF show - 1
+ 00000133  3B 0D 0000024A R				cmp ecx, curNameLngth
+ 00000139  75 16					jne HelpCheck
+ 0000013B  8B DE					mov ebx, esi
+ 0000013D  8B C7					mov eax, edi
+ 0000013F  BE 00000039 R				mov esi, offset show
+ 00000144  FC						cld
+ 00000145  F3/ A6					repe cmpsb
+ 00000147  8B F3					mov esi, ebx
+ 00000149  8B F8					mov edi, eax
+ 0000014B  0F 84 000007EA				je ShowCommand
+ 00000151					HelpCheck:
+ 00000151  B9 00000004					mov ecx, LENGTHOF help - 1
+ 00000156  3B 0D 0000024A R				cmp ecx, curNameLngth
+ 0000015C  75 16					jne HoldCheck
+ 0000015E  8B DE					mov ebx, esi
+ 00000160  8B C7					mov eax, edi
+ 00000162  BE 00000021 R				mov esi, offset help
+ 00000167  FC						cld
+ 00000168  F3/ A6					repe cmpsb
+ 0000016A  8B F3					mov esi, ebx
+ 0000016C  8B F8					mov edi, eax
+ 0000016E  0F 84 00000908				je HelpCommand
+ 00000174					HoldCheck:
+ 00000174  B9 00000004					mov ecx, LENGTHOF hold - 1
+ 00000179  3B 0D 0000024A R				cmp ecx, curNameLngth
+ 0000017F  75 16					jne ChangeCheck
+ 00000181  8B DE					mov ebx, esi
+ 00000183  8B C7					mov eax, edi
+ 00000185  BE 0000002F R				mov esi, offset hold
+ 0000018A  FC						cld
+ 0000018B  F3/ A6					repe cmpsb
+ 0000018D  8B F3					mov esi, ebx
+ 0000018F  8B F8					mov edi, eax
+ 00000191  0F 84 00000940				je HoldCommand
+ 00000197					ChangeCheck:
+ 00000197  B9 00000006					mov ecx, LENGTHOF change - 1
+ 0000019C  3B 0D 0000024A R				cmp ecx, curNameLngth
+ 000001A2  75 16					jne KillCheck
+ 000001A4  8B DE					mov ebx, esi
+ 000001A6  8B C7					mov eax, edi
+ 000001A8  BE 00000043 R				mov esi, offset change
+ 000001AD  FC						cld
+ 000001AE  F3/ A6					repe cmpsb
+ 000001B0  8B F3					mov esi, ebx
+ 000001B2  8B F8					mov edi, eax
+ 000001B4  0F 84 000009B1				je ChangeCommand
+ 000001BA					KillCheck:
+ 000001BA  B9 00000004					mov ecx, LENGTHOF kill - 1
+ 000001BF  3B 0D 0000024A R				cmp ecx, curNameLngth
+ 000001C5  75 16					jne QuitCheck
+ 000001C7  8B DE					mov ebx, esi
+ 000001C9  8B C7					mov eax, edi
+ 000001CB  BE 00000034 R				mov esi, offset kill
+ 000001D0  FC						cld
+ 000001D1  F3/ A6					repe cmpsb
+ 000001D3  8B F3					mov esi, ebx
+ 000001D5  8B F8					mov edi, eax
+ 000001D7  0F 84 00000AA2				je KillCommand
+ 000001DD					QuitCheck:	
+ 000001DD  B9 00000004					mov ecx, LENGTHOF quit - 1
+ 000001E2  3B 0D 0000024A R				cmp ecx, curNameLngth
+ 000001E8  75 16					jne InvalidCommand
+ 000001EA  8B DE					mov ebx, esi
+ 000001EC  8B C7					mov eax, edi
+ 000001EE  BE 0000001C R				mov esi, offset quit
+ 000001F3  FC						cld
+ 000001F4  F3/ A6					repe cmpsb
+ 000001F6  8B F3					mov esi, ebx
+ 000001F8  8B F8					mov edi, eax
+ 000001FA  0F 84 00000ECB				je QuitCommand
+ 00000200					InvalidCommand:
+ 00000200  BA 00000704 R				mov edx, offset notCommand
+ 00000205  E8 00000000 E				call WriteString
+ 0000020A  C3						ret
+					
+					; Prompts the user to re-enter the load parameters and re-checks if the entered jobname already exists
+ 0000020B				InvalidLoad:
+ 0000020B  BA 000002AF R			mov edx, offset pLoad
+ 00000210  E8 00000000 E			call WriteString
+ 00000215  B8 000000C9 R			mov eax, offset input
+ 0000021A  B9 00000032				mov ecx, INPUTLENGTH
+ 0000021F  E8 00000E6F				call ClearBuffer
+ 00000224  BA 000000C9 R			mov edx, offset input
+ 00000229  B9 00000032				mov ecx, INPUTLENGTH
+ 0000022E  E8 00000000 E			call ReadString
+ 00000233  B9 0000000E				mov ecx, RECORDLENGTH
+ 00000238  BE 000000BB R			mov esi, offset blankLine
+ 0000023D  8B 3D 0000023E R			mov edi, loadTemp1
+ 00000243  F3/ A4				rep movsb
+ 00000245  BE 000000C9 R			mov esi, offset input
+ 0000024A  B8 00000189 R			mov eax, offset entry
+ 0000024F  B9 0000000A				mov ecx, ENTRYLENGTH
+ 00000254  E8 00000E3A				call ClearBuffer
+ 00000259  BF 00000189 R			mov edi, offset entry
+ 0000025E  E8 00000E0F				call SkipSpace
+ 00000263  89 35 00000242 R			mov loadTemp2, esi
+ 00000269  E8 00000DD0				call GetString
+ 0000026E  E8 00000AD7				call LowerCase
+ 00000273  8B 35 00000242 R			mov esi, loadTemp2
+ 00000279  BF 00000189 R			mov edi, offset entry
+ 0000027E  E8 00000D7B				call FindJob
+ 00000283  83 FA FF				cmp edx, -1
+ 00000286  0F 85 0000063C			jne NotUniqueJob
+ 0000028C  E9 000004CF				jmp ContinueLoad
+
+					; Writes a statement about an invalid job name and jumps back to the menu
+ 00000291				PromptJob:
+ 00000291  BA 00000252 R			mov edx, offset pJob
+ 00000296  E8 00000000 E			call WriteString
+ 0000029B  E9 FFFFFD6F				jmp Menu
+
+					; Writes a statement about an invalid priority and jumps back to the menu
+ 000002A0				PromptPri:
+ 000002A0  BA 0000026C R			mov edx, offset pPri
+ 000002A5  E8 00000000 E			call WriteString
+ 000002AA  E9 FFFFFD60				jmp Menu
+					
+					; Decrements the highest priority job's runtime until it has cycled the number of steps entered
+					; If a job's runtime hits 0 StepCommand loops to the next highest priority job
+ 000002AF				StepCommand:
+ 000002AF  BA 0000004A R			mov edx, offset newline
+ 000002B4  E8 00000000 E			call WriteString
+ 000002B9  E8 00000DB4				call SkipSpace
+ 000002BE  E8 00000D7B				call GetString
+ 000002C3  C7 05 00000194 R			mov curJobIndex, 0
+	   00000000
+ 000002CD  C7 05 00000198 R			mov curPriSearch, 0
+	   00000000
+ 000002D7  C7 05 000001ED R			mov stepPrintIndex, 0
+	   00000000
+ 000002E1  8B C7				mov eax, edi
+ 000002E3  8A 1F				mov bl, [edi]
+ 000002E5  80 FB 73				cmp bl, 's'
+ 000002E8  74 27				je OneStep
+ 000002EA  80 FB 31				cmp bl, 31h
+ 000002ED  7C 17				jl InvalidStep
+ 000002EF  80 FB 39				cmp bl, 39h
+ 000002F2  7F 12				jg InvalidStep
+ 000002F4  E8 00000BAA				call ConvertToInt
+ 000002F9  89 15 00000014 R			mov inputTime, edx
+ 000002FF  83 FA 00				cmp edx, 0
+ 00000302  7F 17				jg StepLoop
+ 00000304  EB 0B				jmp OneStep
+ 00000306					InvalidStep:
+ 00000306  BA 00000799 R				mov edx, offset notStep
+ 0000030B  E8 00000000 E				call WriteString
+ 00000310  C3						ret
+ 00000311					OneStep:
+ 00000311  C7 05 00000014 R				mov inputTime, 1
+	   00000001
+ 0000031B					StepLoop:
+ 0000031B  83 3D 00000014 R				cmp inputTime, 0
+	   00
+ 00000322  C7 05 00000008 R				mov temp3, 0
+	   00000000
+ 0000032C  BB 00000000					mov ebx, 0
+ 00000331  0F 8E 00000171				jle PrintStepping
+ 00000337  E8 00000236					call FindHighPriority
+ 0000033C  BB 0000000E					mov ebx, RECORDLENGTH
+ 00000341  BA 00000000					mov edx, 0
+ 00000346  F7 FB					idiv ebx
+ 00000348  BA 00000000					mov edx, 0
+ 0000034D  BB 00000008					mov ebx, 8
+ 00000352  F7 E3					mul ebx
+ 00000354  A3 000001ED R				mov stepPrintIndex, eax
+ 00000359  83 FE 00					cmp esi, 0
+ 0000035C  0F 84 0000012C				je NoValidJobs
+ 00000362  FF 05 00000236 R				inc systemClock
+ 00000368  FF 0D 00000014 R				dec inputTime
+ 0000036E  BF 00000189 R				mov edi, offset entry
+ 00000373  89 35 00000010 R				mov temp5, esi
+ 00000379  E8 00000CC0					call GetString
+ 0000037E  89 0D 0000024A R				mov curNameLngth, ecx
+ 00000384  8B 35 00000010 R				mov esi, temp5
+ 0000038A  8B FE					mov edi, esi
+ 0000038C  E8 000009E4					call GetRuntime
+ 00000391  8B C2					mov eax, edx
+ 00000393  B9 00000002					mov ecx, RUNTIMELENGTH
+ 00000398  E8 00000B06					call ConvertToInt
+ 0000039D  A3 00000008 R				mov temp3, eax
+ 000003A2  4A						dec edx
+ 000003A3  B9 00000001					mov ecx, 1
+ 000003A8  A1 000001ED R				mov eax, stepPrintIndex
+ 000003AD  01 88 0000019C R				add [stepPrintBuffer + eax], ecx
+ 000003B3  8B 0D 00000236 R				mov ecx, systemClock
+ 000003B9  89 88 000001A0 R				mov [stepPrintBuffer + eax + 4], ecx
+ 000003BF  83 FA 00					cmp edx, 0
+ 000003C2  7E 1E					jle JobDone
+ 000003C4  B9 00000002					mov ecx, 2
+ 000003C9  A1 00000008 R				mov eax, temp3
+ 000003CE  E8 00000CC0					call ClearBuffer
+ 000003D3  A1 00000008 R				mov eax, temp3
+ 000003D8  E8 00000B72					call ConvertToString
+ 000003DD  E9 FFFFFF39					jmp StepLoop
+ 000003E2					JobDone:
+ 000003E2  B8 00000189 R				mov eax, offset entry
+ 000003E7  B9 0000000A					mov ecx, ENTRYLENGTH
+ 000003EC  E8 00000CA2					call ClearBuffer
+ 000003F1  BE 000000FC R				mov esi, offset records
+ 000003F6  BA 00000000					mov edx, 0
+ 000003FB  A1 000001ED R				mov eax, stepPrintIndex
+ 00000400  BB 00000008					mov ebx, 8
+ 00000405  F7 FB					idiv ebx
+ 00000407  BA 00000000					mov edx, 0
+ 0000040C  BB 0000000E					mov ebx, RECORDLENGTH
+ 00000411  F7 E3					mul ebx
+ 00000413  A3 0000000C R				mov temp4, eax
+ 00000418  03 F0					add esi, eax
+
+ 0000041A  BF 00000189 R				mov edi, offset entry
+ 0000041F  B9 00000008					mov ecx, JOBLENGTH
+ 00000424  E8 00000C15					call GetString
+ 00000429  B3 00					mov bl, 0
+ 0000042B  88 1C 0F					mov [edi + ecx], bl
+
+ 0000042E  BA 00000189 R				mov edx, offset entry
+ 00000433  E8 00000000 E				call WriteString
+ 00000438  BF 00000189 R				mov edi, offset entry
+ 0000043D  BE 000000BB R				mov esi, offset blankline
+ 00000442  B9 0000000A					mov ecx, ENTRYLENGTH
+ 00000447  F3/ A4					rep movsb
+ 00000449  8B 35 00000010 R				mov esi, temp5
+ 0000044F  BA 000007D0 R				mov edx, offset finishedRun
+ 00000454  E8 00000000 E				call WriteString
+ 00000459  8B FE					mov edi, esi
+ 0000045B  B8 00000233 R				mov eax, offset holdStatus
+ 00000460  E8 000009E4					call SetStatus
+ 00000465  E8 00000815					call KillCommand
+ 0000046A  BA 0000004A R				mov edx, offset newline
+ 0000046F  E8 00000000 E				call WriteString
+
+ 00000474  BE 0000019C R				mov esi, offset stepPrintBuffer
+ 00000479  03 35 000001ED R				add esi, stepPrintIndex
+ 0000047F  B9 00000000					mov ecx, 0
+ 00000484  89 0E					mov [esi], ecx
+ 00000486  89 4E 04					mov [esi + 4], ecx
+
+ 00000489  E9 FFFFFE8D					jmp StepLoop
+ 0000048E					NoValidJobs:
+ 0000048E  C7 05 00000008 R				mov temp3, 0
+	   00000000
+ 00000498  E8 0000000B					call PrintStepping
+ 0000049D  BA 00000577 R				mov edx, offset noJobsR
+ 000004A2  E8 00000000 E				call WriteString
+ 000004A7  C3						ret
+ 000004A8					PrintStepping:
+ 000004A8  BE 0000019C R				mov esi, offset stepPrintBuffer
+ 000004AD  03 35 00000008 R				add esi, temp3
+ 000004B3  8B 06					mov eax, [esi]
+ 000004B5  83 F8 00					cmp eax, 0
+ 000004B8  0F 8E 0000008A				jle SkipPrint
+ 000004BE  A3 0000000C R				mov temp4, eax
+ 000004C3  8B 46 04					mov eax, [esi + 4]
+ 000004C6  A3 00000010 R				mov temp5, eax
+
+ 000004CB  BE 000000FC R				mov esi, offset records
+ 000004D0  BA 00000000					mov edx, 0
+ 000004D5  A1 00000008 R				mov eax, temp3
+ 000004DA  BB 00000008					mov ebx, 8
+ 000004DF  F7 FB					idiv ebx
+ 000004E1  BA 00000000					mov edx, 0
+ 000004E6  BB 0000000E					mov ebx, RECORDLENGTH
+ 000004EB  F7 E3					mul ebx
+ 000004ED  03 F0					add esi, eax
+
+ 000004EF  BF 00000189 R				mov edi, offset entry
+ 000004F4  B9 00000008					mov ecx, JOBLENGTH
+ 000004F9  E8 00000B40					call GetString
+ 000004FE  B3 00					mov bl, 0
+ 00000500  88 1C 0F					mov [edi + ecx], bl
+ 00000503  8B D7					mov edx, edi
+ 00000505  E8 00000000 E				call WriteString
+ 0000050A  BE 000000BB R				mov esi, offset blankline
+ 0000050F  B9 0000000A					mov ecx, ENTRYLENGTH
+ 00000514  F3/ A4					rep movsb
+ 00000516  BA 000008BC R				mov edx, offset mesgSTEP1
+ 0000051B  E8 00000000 E				call WriteString
+
+ 00000520  A1 0000000C R				mov eax, temp4
+ 00000525  E8 00000000 E				call WriteInt
+ 0000052A  BA 000008CF R				mov edx, offset mesgSTEP2
+ 0000052F  E8 00000000 E				call WriteString
+ 00000534  A1 00000010 R				mov eax, temp5
+ 00000539  E8 00000000 E				call WriteInt
+ 0000053E  BA 0000004A R				mov edx, offset newline
+ 00000543  E8 00000000 E				call WriteString
+ 00000548					SkipPrint:
+ 00000548  BE 0000019C R				mov esi, offset stepPrintBuffer
+ 0000054D  03 35 00000008 R				add esi, temp3
+ 00000553  B9 00000000					mov ecx, 0
+ 00000558  89 0E					mov [esi], ecx
+ 0000055A  89 4E 04					mov [esi + 4], ecx
+ 0000055D  83 05 00000008 R				add temp3, 8
+	   08
+ 00000564  83 3D 00000008 R				cmp temp3, sizeof stepPrintBuffer
+	   50
+ 0000056B  0F 8C FFFFFF37				jl PrintStepping
+ 00000571  C3						ret
+
+					; Searches for the current job with the highest priority that's in run mode
+					; If at least one job was in run mode then it puts the address of the one with the highest priority into esi
+ 00000572				FindHighPriority:
+ 00000572  BF 000000FC R			mov edi, offset records
+ 00000577  A1 00000194 R			mov eax, curJobIndex
+ 0000057C  83 C0 0E				add eax, RECORDLENGTH
+ 0000057F  C7 05 00000198 R			mov curPriSearch, 0
+	   00000000
+ 00000589  03 F8				add edi, eax
+ 0000058B  8B F7				mov esi, edi
+ 0000058D  BB 00000000				mov ebx, 0
+ 00000592					FindPriLoop:
+ 00000592  3D 0000008C					cmp eax, TOTALRECORDSLENGTH
+ 00000597  7C 05					jl ContinuePriLoop
+ 00000599  B8 00000000					mov eax, 0
+ 0000059E					ContinuePriLoop:
+ 0000059E  3B 05 00000194 R				cmp eax, curJobIndex
+ 000005A4  74 51					je NoRunsFoundSoFar
+ 000005A6  BE 000000FC R				mov esi, offset records
+ 000005AB  03 F0					add esi, eax
+ 000005AD  8B FE					mov edi, esi
+ 000005AF  E8 000007CA					call GetStatus
+ 000005B4  8A 1A					mov bl, [edx]
+ 000005B6  80 FB 52					cmp bl, 'R'
+ 000005B9  75 20					jne SkipPriCheck
+ 000005BB  E8 000007AF					call GetPriority
+ 000005C0  8A 1A					mov bl, [edx]
+ 000005C2  0F B6 CB					movzx ecx, bl
+ 000005C5  83 E9 30					sub ecx, 30h
+ 000005C8  3B 0D 00000198 R				cmp ecx, curPriSearch
+ 000005CE  74 05					je FoundPri
+ 000005D0  83 C0 0E					add eax, RECORDLENGTH
+ 000005D3  EB BD					jmp FindPriLoop
+ 000005D5					FoundPri:
+ 000005D5  A3 00000194 R				mov curJobIndex, eax
+ 000005DA  C3						ret
+ 000005DB					SkipPriCheck:
+ 000005DB  83 C0 0E					add eax, RECORDLENGTH
+ 000005DE  EB B2					jmp FindPriLoop
+ 000005E0					MaybeFoundPri:
+ 000005E0  E8 0000078A					call GetPriority
+ 000005E5  8A 1A					mov bl, [edx]
+ 000005E7  0F B6 CB					movzx ecx, bl
+ 000005EA  83 E9 30					sub ecx, 30h
+ 000005ED  3B 0D 00000198 R				cmp ecx, curPriSearch
+ 000005F3  74 E0					je FoundPri
+ 000005F5  EB 19					jmp KeepLooking
+ 000005F7					NoRunsFoundSoFar:
+ 000005F7  BF 000000FC R				mov edi, offset records
+ 000005FC  03 3D 00000194 R				add edi, curJobIndex
+ 00000602  E8 00000777					call GetStatus
+ 00000607  8A 1A					mov bl, [edx]
+ 00000609  8B F7					mov esi, edi
+ 0000060B  80 FB 52					cmp bl, 'R'
+ 0000060E  74 D0					je MaybeFoundPri
+ 00000610					KeepLooking:
+ 00000610  83 3D 00000198 R				cmp curPriSearch, 7
+	   07
+ 00000617  7D 17					jge NoRunModes
+ 00000619  FF 05 00000198 R				inc curPriSearch
+ 0000061F  A1 00000194 R				mov eax, curJobIndex
+ 00000624  83 C0 0E					add eax, RECORDLENGTH
+ 00000627  03 F8					add edi, eax
+ 00000629  8B F7					mov esi, edi
+ 0000062B  E9 FFFFFF62					jmp FindPriLoop
+ 00000630					NoRunModes:
+ 00000630  BF 000000FC R				mov edi, offset records
+ 00000635  03 3D 00000194 R				add edi, curJobIndex
+ 0000063B  E8 0000073E					call GetStatus
+ 00000640  8A 1A					mov bl, [edx]
+ 00000642  8B F7					mov esi, edi
+ 00000644  80 FB 52					cmp bl, 'R'
+ 00000647  74 8C					je FoundPri
+ 00000649  BE 00000000					mov esi, 0
+ 0000064E  C3						ret
+							
+					; Searches for the entered job name amongst the records and sets it's status to run mode ('R') if it finds it
+ 0000064F				RunCommand:
+ 0000064F  B8 00000189 R			mov eax, offset entry
+ 00000654  B9 0000000A				mov ecx, ENTRYLENGTH
+ 00000659  E8 00000A35				call ClearBuffer
+ 0000065E  E8 00000A0F				call SkipSpace
+ 00000663  E8 000009D6				call GetString
+ 00000668  89 0D 0000024A R			mov curNameLngth, ecx
+ 0000066E  B3 20				mov bl, ' '
+ 00000670  38 1F				cmp [edi], bl
+ 00000672  0F 84 FFFFFC19			je PromptJob
+ 00000678  E8 000006CD				call LowerCase
+ 0000067D  E8 0000097C				call FindJob
+ 00000682  83 FA FF				cmp edx, -1
+ 00000685  75 0B				jne ContinueRun
+ 00000687  BA 0000059E R			mov edx, offset jobNotFound
+ 0000068C  E8 00000000 E			call WriteString
+ 00000691  C3					ret
+ 00000692					ContinueRun:
+ 00000692  8B FA					mov edi, edx
+ 00000694  B8 00000235 R				mov eax, offset runStatus
+ 00000699  E8 000007AB					call SetStatus
+ 0000069E  B3 00					mov bl, 0
+ 000006A0  8B 0D 0000024A R				mov ecx, curNameLngth
+ 000006A6  BA 00000189 R				mov edx, offset entry
+ 000006AB  88 1C 0A					mov [edx + ecx], bl
+ 000006AE  E8 00000000 E				call WriteString
+ 000006B3  BA 000007E8 R				mov edx, offset mesgRUN
+ 000006B8  E8 00000000 E				call WriteString
+ 000006BD  A1 00000236 R				mov eax, systemClock
+ 000006C2  E8 00000000 E				call WriteInt
+ 000006C7  BA 0000004A R				mov edx, offset newline
+ 000006CC  E8 00000000 E				call WriteString
+ 000006D1  BF 00000189 R				mov edi, offset entry
+ 000006D6  BE 000000BB R				mov esi, offset blankline
+ 000006DB  B9 0000000A					mov ecx, ENTRYLENGTH
+ 000006E0  F3/ A4					rep movsb
+ 000006E2  C3						ret
+								
+					; Initializes the next available job slot with the given parameterized values entered by the user
+					; Restricts the user to 8 characters for the jobname, priority to integers (0-7), and runtime to integers (1-50)
+ 000006E3				LoadCommand:
+ 000006E3  B8 00000189 R			mov eax, offset entry
+ 000006E8  B9 0000000A				mov ecx, ENTRYLENGTH
+ 000006ED  E8 000009A1				call ClearBuffer
+ 000006F2  E8 0000097B				call SkipSpace
+ 000006F7  89 35 00000242 R			mov loadTemp2, esi
+ 000006FD  C7 05 0000024E R			mov maxChars, JOBLENGTH
+	   00000008
+ 00000707  E8 00000932				call GetString
+ 0000070C  E8 00000639				call LowerCase
+ 00000711  8B D7				mov edx, edi
+ 00000713  E8 000001BF				call FindAvailable
+ 00000718  83 FF FF				cmp edi, -1
+ 0000071B  0F 84 00000190			je NoJobsAvailable
+ 00000721  89 3D 0000023E R			mov loadTemp1, edi
+ 00000727  87 35 00000242 R			xchg esi, loadTemp2
+ 0000072D  8A 1E				mov bl, [esi]
+ 0000072F  87 35 00000242 R			xchg esi, loadTemp2
+ 00000735  80 FB 20				cmp bl, ' '
+ 00000738  0F 84 FFFFFACD			je InvalidLoad
+ 0000073E  80 FB 00				cmp bl, 0
+ 00000741  0F 84 FFFFFAC4			je InvalidLoad
+ 00000747  8B 35 00000242 R			mov esi, loadTemp2
+ 0000074D  BF 00000189 R			mov edi, offset entry
+ 00000752  E8 000008A7				call FindJob
+ 00000757  83 FA FF				cmp edx, -1
+ 0000075A  0F 85 00000168			jne NotUniqueJob
+ 00000760					ContinueLoad:
+ 00000760  E8 0000090D					call SkipSpace
+ 00000765  8B 3D 0000023E R				mov edi, loadTemp1
+ 0000076B  B3 20					mov bl, ' '
+ 0000076D  38 1E					cmp [esi], bl
+ 0000076F  0F 84 FFFFFA96				je InvalidLoad
+ 00000775  E8 000008C4					call GetString
+ 0000077A  83 F9 08					cmp ecx, JOBLENGTH
+ 0000077D  0F 8F 0000012F				jg NameTooLong
+ 00000783  E8 000005C2					call LowerCase	
+ 00000788  83 C7 08					add	edi, JOBLENGTH
+ 0000078B  E8 000008E2					call SkipSpace
+ 00000790  B3 20					mov bl, " "
+ 00000792  38 1E					cmp [esi], bl
+ 00000794  0F 84 FFFFFA71				je InvalidLoad
+ 0000079A  B3 00					mov bl, 0
+ 0000079C  38 1E					cmp [esi], bl
+ 0000079E  0F 84 FFFFFA67				je InvalidLoad
+ 000007A4  E8 00000895					call GetString
+ 000007A9  83 F9 01					cmp ecx, 1
+ 000007AC  0F 8F 000000E1				jg InvalidLoadPri
+ 000007B2  8A 1F					mov bl, [edi]
+ 000007B4  80 FB 30					cmp bl, 30h
+ 000007B7  0F 8C 000000D6				jl InvalidLoadPri
+ 000007BD  80 FB 37					cmp bl, 37h
+ 000007C0  0F 8F 000000CD				jg InvalidLoadPri
+ 000007C6  83 C7 01					add edi, PRIORITYLENGTH
+ 000007C9  E8 000008A4					call SkipSpace
+ 000007CE  89 35 00000246 R				mov loadTemp3, esi
+ 000007D4  B3 20					mov bl, " "
+ 000007D6  38 1E					cmp [esi], bl
+ 000007D8  0F 84 FFFFFA2D				je InvalidLoad
+ 000007DE  B3 00					mov bl, 0
+ 000007E0  38 1E					cmp [esi], bl
+ 000007E2  0F 84 FFFFFA23				je InvalidLoad
+ 000007E8  E8 00000851					call GetString
+ 000007ED  83 F9 02					cmp ecx, 2
+ 000007F0  0F 8F 000000AC				jg InvalidLoadRun
+ 000007F6  8B C7					mov eax, edi
+ 000007F8  B9 00000002					mov ecx, RUNTIMELENGTH
+ 000007FD  E8 000006A1					call ConvertToInt
+ 00000802  83 FA 01					cmp edx, 1
+ 00000805  0F 8C 00000097				jl InvalidLoadRun
+ 0000080B  83 FA 32					cmp edx, 50
+ 0000080E  0F 8F 0000008E				jg InvalidLoadRun
+ 00000814  8B 35 00000246 R				mov esi, loadTemp3
+ 0000081A  83 C7 02					add edi, RUNTIMELENGTH
+ 0000081D  E8 0000081C					call GetString
+ 00000822  83 C7 02					add edi, STARTTIMELENGTH
+ 00000825  B3 48					mov bl, 'H'
+ 00000827  88 1F					mov [edi], bl
+ 00000829  E8 00000844					call SkipSpace
+ 0000082E  E8 0000080B					call GetString
+ 00000833  83 F9 00					cmp ecx, 0
+ 00000836  7F 4C					jg TooManyParams
+ 00000838  8B 35 00000242 R				mov esi, loadTemp2
+ 0000083E  BF 00000189 R				mov edi, offset entry
+ 00000843  E8 000007F6					call GetString
+ 00000848  E8 000004FD					call LowerCase
+ 0000084D  B3 00					mov bl, 0
+ 0000084F  88 1C 0F					mov [edi + ecx], bl
+ 00000852  8B D7					mov edx, edi
+ 00000854  E8 00000000 E				call WriteString
+ 00000859  BA 00000891 R				mov edx, offset mesgLOAD
+ 0000085E  E8 00000000 E				call WriteString
+ 00000863  A1 00000236 R				mov eax, systemClock
+ 00000868  E8 00000000 E				call WriteInt
+ 0000086D  BA 0000004A R				mov edx, offset newline
+ 00000872  E8 00000000 E				call WriteString
+ 00000877  BE 000000BB R				mov esi, offset blankline
+ 0000087C  B9 0000000A					mov ecx, ENTRYLENGTH
+ 00000881  F3/ A4					rep movsb
+ 00000883  C3						ret
+ 00000884					TooManyParams:
+ 00000884  BA 000005B3 R				mov edx, offset tooManyP
+ 00000889  E8 00000000 E				call WriteString
+ 0000088E  E9 FFFFF978					jmp InvalidLoad
+ 00000893					InvalidLoadPri:
+ 00000893  BA 00000669 R				mov edx, offset notPriority
+ 00000898  E8 00000000 E				call WriteString
+ 0000089D  E9 FFFFF969					jmp InvalidLoad
+ 000008A2					InvalidLoadRun:
+ 000008A2  BA 00000697 R				mov edx, offset notRunTime
+ 000008A7  E8 00000000 E				call WriteString
+ 000008AC  E9 FFFFF95A					jmp InvalidLoad
+ 000008B1					NoJobsAvailable:
+ 000008B1  C3						ret
+ 000008B2					NameTooLong:
+ 000008B2  8B D7					mov edx, edi
+ 000008B4  E8 00000000 E				call WriteString
+ 000008B9  BA 00000723 R				mov edx, offset jobTooLong
+ 000008BE  E8 00000000 E				call WriteString
+ 000008C3  E9 FFFFF943					jmp InvalidLoad
+ 000008C8					NotUniqueJob:
+ 000008C8  BA 00000613 R				mov edx, offset notUnique
+ 000008CD  E8 00000000 E				call WriteString
+ 000008D2  E9 FFFFF934					jmp InvalidLoad
+
+					; Loops through the individual records until it reaches the end or finds one with the available ('A') status
+					; Puts the address of the first available record into edi if it finds one
+ 000008D7				FindAvailable:
+ 000008D7  BF 000000FC R			mov edi, offset records
+ 000008DC  89 1D 00000000 R			mov temp1, ebx
+ 000008E2  A3 00000004 R			mov temp2, eax
+ 000008E7  BB 00000000				mov ebx, 0
+ 000008EC  B8 00000000				mov eax, 0
+ 000008F1					FindAvailLoop:
+ 000008F1  3D 0000008C					cmp eax, TOTALRECORDSLENGTH
+ 000008F6  7D 28					jge NoAvailRecords
+ 000008F8  83 C0 08					add eax, JOBLENGTH
+ 000008FB  83 C0 01					add eax, PRIORITYLENGTH
+ 000008FE  83 C0 02					add eax, RUNTIMELENGTH
+ 00000901  83 C0 02					add eax, STARTTIMELENGTH
+ 00000904  8A 1C 07					mov bl, [edi + eax]
+ 00000907  83 C0 01					add eax, PRIORITYLENGTH
+ 0000090A  80 FB 41					cmp bl, 'A'
+ 0000090D  75 E2					jne FindAvailLoop
+ 0000090F  83 E8 0E					sub eax, RECORDLENGTH
+ 00000912  03 F8					add edi, eax
+ 00000914  8B 1D 00000000 R				mov ebx, temp1
+ 0000091A  A1 00000004 R				mov eax, temp2
+ 0000091F  C3						ret
+ 00000920					NoAvailRecords:
+ 00000920  BA 00000771 R				mov edx, offset jobListFull
+ 00000925  E8 00000000 E				call WriteString
+ 0000092A  BF FFFFFFFF					mov edi, -1
+ 0000092F  8B 1D 00000000 R				mov ebx, temp1
+ 00000935  A1 00000004 R				mov eax, temp2
+ 0000093A  C3						ret
+
+					; Shows the entire contents of records (i.e. the job's name, priority, runtime, starttime, and status
+ 0000093B				ShowCommand:
+ 0000093B  BA 0000004A R			mov edx, offset newline
+ 00000940  E8 00000000 E			call WriteString
+ 00000945  BA 000001FD R			mov edx, offset jobLabels
+ 0000094A  E8 00000000 E			call WriteString
+ 0000094F  BA 0000004A R			mov edx, offset newline
+ 00000954  E8 00000000 E			call WriteString
+ 00000959  BB 00000000				mov ebx, 0
+ 0000095E  B9 00000000				mov ecx, 0
+ 00000963  BE 000000FC R			mov esi, offset records
+ 00000968					ShowLoop:
+ 00000968  81 FB 0000008C				cmp ebx, TOTALRECORDSLENGTH
+ 0000096E  0F 8D 000000EE				jge ShowDone
+ 00000974  8B C6					mov eax, esi
+ 00000976  83 C0 08					add eax, JOBLENGTH
+ 00000979  83 C0 01					add eax, PRIORITYLENGTH
+ 0000097C  83 C0 02					add eax, RUNTIMELENGTH
+ 0000097F  83 C0 02					add eax, STARTTIMELENGTH
+ 00000982  B2 41					mov dl, 'A'
+ 00000984  38 10					cmp [eax], dl
+ 00000986  0F 84 000000CB				je SkipShowJob
+								
+ 0000098C  BF 00000189 R				mov edi, offset entry
+ 00000991  B9 00000008					mov ecx, JOBLENGTH
+ 00000996  F3/ A4					rep movsb
+ 00000998  BA 00000189 R				mov edx, offset entry
+ 0000099D  E8 00000000 E				call WriteString
+ 000009A2  B8 00000189 R				mov eax, offset entry
+ 000009A7  B9 0000000A					mov ecx, ENTRYLENGTH
+ 000009AC  E8 000006E2					call ClearBuffer
+
+ 000009B1  BF 00000189 R				mov edi, offset entry
+ 000009B6  B9 00000001					mov ecx, PRIORITYLENGTH
+ 000009BB  F3/ A4					rep movsb
+ 000009BD  BA 00000189 R				mov edx, offset entry
+ 000009C2  E8 00000000 E				call WriteString
+ 000009C7  B8 00000189 R				mov eax, offset entry
+ 000009CC  B9 0000000A					mov ecx, ENTRYLENGTH
+ 000009D1  E8 000006BD					call ClearBuffer
+					
+ 000009D6  BF 00000189 R				mov edi, offset entry
+ 000009DB  B9 00000002					mov ecx, RUNTIMELENGTH
+ 000009E0  F3/ A4					rep movsb
+ 000009E2  BA 00000189 R				mov edx, offset entry
+ 000009E7  E8 00000000 E				call WriteString
+ 000009EC  B8 00000189 R				mov eax, offset entry
+ 000009F1  B9 0000000A					mov ecx, ENTRYLENGTH
+ 000009F6  E8 00000698					call ClearBuffer
+					
+ 000009FB  BF 00000189 R				mov edi, offset entry
+ 00000A00  B9 00000002					mov ecx, STARTTIMElENGTH
+ 00000A05  F3/ A4					rep movsb
+ 00000A07  BA 00000189 R				mov edx, offset entry
+ 00000A0C  E8 00000000 E				call WriteString
+ 00000A11  B8 00000189 R				mov eax, offset entry
+ 00000A16  B9 0000000A					mov ecx, ENTRYLENGTH
+ 00000A1B  E8 00000673					call ClearBuffer
+					
+ 00000A20  BF 00000189 R				mov edi, offset entry
+ 00000A25  B9 00000001					mov ecx, STATUSLENGTH
+ 00000A2A  F3/ A4					rep movsb
+ 00000A2C  BA 00000189 R				mov edx, offset entry
+ 00000A31  E8 00000000 E				call WriteString
+ 00000A36  B8 00000189 R				mov eax, offset entry
+ 00000A3B  B9 0000000A					mov ecx, ENTRYLENGTH
+ 00000A40  E8 0000064E					call ClearBuffer
+					
+ 00000A45  BA 0000004A R				mov edx, offset newline
+ 00000A4A  E8 00000000 E				call WriteString
+ 00000A4F  83 C3 0E					add ebx, RECORDLENGTH
+ 00000A52  E9 FFFFFF11					jmp ShowLoop
+ 00000A57					SkipShowJob:
+ 00000A57  83 C3 0E					add ebx, RECORDLENGTH
+ 00000A5A  83 C6 0E					add esi, RECORDLENGTH
+ 00000A5D  E9 FFFFFF06					jmp ShowLoop
+ 00000A62					ShowDone:
+ 00000A62  83 F9 00					cmp ecx, 0
+ 00000A65  75 0A					jne JobExists
+ 00000A67  BA 000005F2 R				mov edx, offset noRecords
+ 00000A6C  E8 00000000 E				call WriteString
+ 00000A71					JobExists:
+ 00000A71  BA 0000004A R				mov edx, offset newline
+ 00000A76  E8 00000000 E				call WriteString
+ 00000A7B  C3						ret
+					
+					; Prints out command information for the user
+ 00000A7C				HelpCommand:
+ 00000A7C  BA 000002EF R			mov edx, offset helpQuit
+ 00000A81  E8 00000000 E			call WriteString
+ 00000A86  BA 00000309 R			mov edx, offset helpHelp
+ 00000A8B  E8 00000000 E			call WriteString
+ 00000A90  BA 00000328 R			mov edx, offset helpShow
+ 00000A95  E8 00000000 E			call WriteString
+ 00000A9A  BA 00000362 R			mov edx, offset helpRun
+ 00000A9F  E8 00000000 E			call WriteString
+ 00000AA4  BA 000003B7 R			mov edx, offset helpHold
+ 00000AA9  E8 00000000 E			call WriteString
+ 00000AAE  BA 0000040C R			mov edx, offset helpKill
+ 00000AB3  E8 00000000 E			call WriteString
+ 00000AB8  BA 0000044B R			mov edx, offset helpStep
+ 00000ABD  E8 00000000 E			call WriteString
+ 00000AC2  BA 00000498 R			mov edx, offset helpChange
+ 00000AC7  E8 00000000 E			call WriteString
+ 00000ACC  BA 000004FD R			mov edx, offset helpLoad
+ 00000AD1  E8 00000000 E			call WriteString
+ 00000AD6  C3					ret
+
+					; Searches for the entered job name amongst the records and sets it's status to hold mode ('H') if it finds it
+ 00000AD7				HoldCommand:
+ 00000AD7  B8 00000189 R			mov eax, offset entry
+ 00000ADC  B9 0000000A				mov ecx, ENTRYLENGTH
+ 00000AE1  E8 000005AD				call ClearBuffer
+ 00000AE6  E8 00000587				call SkipSpace
+ 00000AEB  E8 0000054E				call GetString
+ 00000AF0  89 0D 0000024A R			mov curNameLngth, ecx
+ 00000AF6  B3 20				mov bl, ' '
+ 00000AF8  38 1F				cmp [edi], bl
+ 00000AFA  0F 84 FFFFF791			je PromptJob
+ 00000B00  E8 00000245				call LowerCase
+ 00000B05  E8 000004F4				call FindJob
+ 00000B0A  83 FA FF				cmp edx, -1
+ 00000B0D  75 0B				jne ContinueHold
+ 00000B0F  BA 0000059E R			mov edx, offset jobNotFound
+ 00000B14  E8 00000000 E			call WriteString
+ 00000B19  C3					ret
+ 00000B1A					ContinueHold:
+ 00000B1A  8B FA					mov edi, edx
+ 00000B1C  B8 00000233 R				mov eax, offset holdStatus
+ 00000B21  E8 00000323					call SetStatus
+ 00000B26  B3 00					mov bl, 0
+ 00000B28  8B 0D 0000024A R				mov ecx, curNameLngth
+ 00000B2E  BA 00000189 R				mov edx, offset entry
+ 00000B33  88 1C 0A					mov [edx + ecx], bl
+ 00000B36  E8 00000000 E				call WriteString
+ 00000B3B  BA 0000080E R				mov edx, offset mesgHOLD
+ 00000B40  E8 00000000 E				call WriteString
+ 00000B45  A1 00000236 R				mov eax, systemClock
+ 00000B4A  E8 00000000 E				call WriteInt
+ 00000B4F  BA 0000004A R				mov edx, offset newline
+ 00000B54  E8 00000000 E				call WriteString
+ 00000B59  BF 00000189 R				mov edi, offset entry
+ 00000B5E  BE 000000BB R				mov esi, offset blankline
+ 00000B63  B9 0000000A					mov ecx, ENTRYLENGTH
+ 00000B68  F3/ A4					rep movsb
+ 00000B6A  C3						ret
+
+					; Searches for the entered job name amongst the records and sets it's priority equal to the next parameter if it was a valid priority
+ 00000B6B				ChangeCommand:
+ 00000B6B  B8 00000189 R			mov eax, offset entry
+ 00000B70  B9 0000000A				mov ecx, ENTRYLENGTH
+ 00000B75  E8 00000519				call ClearBuffer
+ 00000B7A  E8 000004F3				call SkipSpace
+ 00000B7F  89 35 00000010 R			mov temp5, esi
+ 00000B85  E8 000004B4				call GetString
+ 00000B8A  B3 20				mov bl, ' '
+ 00000B8C  38 1F				cmp [edi], bl
+ 00000B8E  0F 84 FFFFF6FD			je PromptJob
+ 00000B94  E8 000001B1				call LowerCase
+ 00000B99  E8 00000460				call FindJob
+ 00000B9E  83 FA FF				cmp edx, -1
+ 00000BA1  75 0B				jne ContinueChange
+ 00000BA3  BA 0000059E R			mov edx, offset jobNotFound
+ 00000BA8  E8 00000000 E			call WriteString
+ 00000BAD  C3					ret
+ 00000BAE					ContinueChange:
+ 00000BAE  B8 00000189 R				mov eax, offset entry
+ 00000BB3  B9 0000000A					mov ecx, ENTRYLENGTH
+ 00000BB8  E8 000004D6					call ClearBuffer
+ 00000BBD  E8 000004B0					call SkipSpace
+ 00000BC2  E8 00000477					call GetString
+ 00000BC7  83 F9 01					cmp ecx, PRIORITYLENGTH
+ 00000BCA  0F 8F FFFFF6D0				jg PromptPri
+ 00000BD0  8A 1F					mov bl, [edi]
+ 00000BD2  80 FB 30					cmp bl, 30h
+ 00000BD5  0F 8C FFFFF6C5				jl PromptPri
+ 00000BDB  80 FB 37					cmp bl, 37h
+ 00000BDE  0F 8F FFFFF6BC				jg PromptPri
+ 00000BE4  8B C7					mov eax, edi
+ 00000BE6  8B FA					mov edi, edx
+ 00000BE8  E8 000001A0					call SetPriority
+ 00000BED  8B 35 00000010 R				mov esi, temp5
+ 00000BF3  8B D8					mov ebx, eax
+ 00000BF5  B8 00000189 R				mov eax, offset entry
+ 00000BFA  B9 0000000A					mov ecx, ENTRYLENGTH
+ 00000BFF  E8 0000048F					call ClearBuffer
+ 00000C04  BF 00000189 R				mov edi, offset entry
+ 00000C09  E8 00000430					call GetString
+ 00000C0E  B3 00					mov bl, 0
+ 00000C10  88 1C 0F					mov [edi + ecx], bl
+ 00000C13  8B D7					mov edx, edi
+ 00000C15  E8 00000000 E				call WriteString
+ 00000C1A  BA 00000864 R				mov edx, offset mesgCHNG1
+ 00000C1F  E8 00000000 E				call WriteString
+ 00000C24  8B DE					mov ebx, esi
+ 00000C26  BE 000000BB R				mov esi, offset blankline
+ 00000C2B  B9 0000000A					mov ecx, ENTRYLENGTH
+ 00000C30  F3/ A4					rep movsb
+ 00000C32  8B F3					mov esi, ebx
+ 00000C34  BF 00000189 R				mov edi, offset entry
+ 00000C39  E8 00000434					call SkipSpace
+ 00000C3E  E8 000003FB					call GetString
+ 00000C43  B3 00					mov bl, 0
+ 00000C45  88 1C 0F					mov [edi + ecx], bl
+ 00000C48  8B D7					mov edx, edi
+ 00000C4A  E8 00000000 E				call WriteString
+ 00000C4F  BA 00000886 R				mov edx, offset mesgCHNG2
+ 00000C54  E8 00000000 E				call WriteString
+ 00000C59  A1 00000236 R				mov eax, systemClock
+ 00000C5E  E8 00000000 E				call WriteInt
+ 00000C63  BA 0000004A R				mov edx, offset newline
+ 00000C68  E8 00000000 E				call WriteString
+ 00000C6D  BE 000000BB R				mov esi, offset blankline
+ 00000C72  B9 0000000A					mov ecx, ENTRYLENGTH
+ 00000C77  BF 00000189 R				mov edi, offset entry
+ 00000C7C  F3/ A4					rep movsb
+ 00000C7E  C3						ret
+
+					; Searches for the entered job name amongst the records and clears it out if it was in hold mode ('H')
+					; Reads the name of the job to kill from an address stored in esi
+ 00000C7F				KillCommand:
+ 00000C7F  B8 00000189 R			mov eax, offset entry
+ 00000C84  B9 0000000A				mov ecx, ENTRYLENGTH
+ 00000C89  E8 00000405				call ClearBuffer
+ 00000C8E  BF 00000189 R			mov edi, offset entry
+ 00000C93  E8 000003DA				call SkipSpace
+ 00000C98  E8 000003A1				call GetString
+ 00000C9D  89 0D 0000024A R			mov curNameLngth, ecx
+ 00000CA3  B3 20				mov bl, ' '
+ 00000CA5  38 1F				cmp [edi], bl
+ 00000CA7  0F 84 FFFFF5E4			je PromptJob
+ 00000CAD  E8 00000098				call LowerCase
+ 00000CB2  E8 00000347				call FindJob
+ 00000CB7  83 FA FF				cmp edx, -1
+ 00000CBA  75 0B				jne ContinueKill1
+ 00000CBC  BA 0000059E R			mov edx, offset jobNotFound
+ 00000CC1  E8 00000000 E			call WriteString
+ 00000CC6  C3					ret
+ 00000CC7					ContinueKill1:
+ 00000CC7  8B C2					mov eax, edx
+ 00000CC9  8B FA					mov edi, edx
+ 00000CCB  E8 000000AE					call GetStatus
+ 00000CD0  B3 48					mov bl, 'H'
+ 00000CD2  38 1A					cmp [edx], bl
+ 00000CD4  74 11					je ContinueKill2
+ 00000CD6  B3 41					mov bl, 'A'
+ 00000CD8  38 1A					cmp [edx], bl
+ 00000CDA  74 0B					je ContinueKill2
+ 00000CDC  BA 00000640 R				mov edx, offset notInHold
+ 00000CE1  E8 00000000 E				call WriteString
+ 00000CE6  C3						ret
+ 00000CE7					ContinueKill2:
+ 00000CE7  B9 0000000E					mov ecx, RECORDLENGTH
+ 00000CEC  E8 000003A2					call ClearBuffer
+ 00000CF1  B8 00000234 R				mov eax, offset availStatus
+ 00000CF6  E8 0000014E					call SetStatus
+ 00000CFB  BA 0000004A R				mov edx, offset newline
+ 00000D00  E8 00000000 E				call WriteString
+ 00000D05  B3 00					mov bl, 0
+ 00000D07  8B 0D 0000024A R				mov ecx, curNameLngth
+ 00000D0D  BA 00000189 R				mov edx, offset entry
+ 00000D12  88 1C 0A					mov [edx + ecx], bl
+ 00000D15  E8 00000000 E				call WriteString
+ 00000D1A  BA 00000835 R				mov edx, offset mesgKILL
+ 00000D1F  E8 00000000 E				call WriteString
+ 00000D24  A1 00000236 R				mov eax, systemClock
+ 00000D29  E8 00000000 E				call WriteInt
+ 00000D2E  BA 0000004A R				mov edx, offset newline
+ 00000D33  E8 00000000 E				call WriteString
+ 00000D38  BF 00000189 R				mov edi, offset entry
+ 00000D3D  BE 000000BB R				mov esi, offset blankline
+ 00000D42  B9 0000000A					mov ecx, ENTRYLENGTH
+ 00000D47  F3/ A4					rep movsb
+ 00000D49  C3						ret
+
+					; Reads from a memory address stored in edi
+					; If an address of edi is an uppercase letter then it converts it to lowercase
+					; Uses ecx as the length of the buffer in edi
+ 00000D4A				LowerCase:
+ 00000D4A  8B C1				mov eax, ecx
+ 00000D4C  EB 09				jmp ToLower
+ 00000D4E					LowerCaseLoop:
+ 00000D4E  83 F9 00					cmp ecx, 0
+ 00000D51  7E 17					jle LowerReturn
+ 00000D53  47						inc edi
+ 00000D54  49						dec ecx
+ 00000D55  EB 00					jmp ToLower
+ 00000D57					ToLower:
+ 00000D57  8A 1F					mov bl, [edi]
+ 00000D59  80 FB 41					cmp bl, 41h
+ 00000D5C  7C F0					jl LowerCaseLoop
+ 00000D5E  80 FB 5A					cmp bl, 5Ah
+ 00000D61  7F EB					jg LowerCaseLoop 
+ 00000D63  80 C3 20					add bl, 20h
+ 00000D66  88 1F					mov [edi], bl
+ 00000D68  EB E4					jmp LowerCaseLoop
+ 00000D6A					LowerReturn:
+ 00000D6A  8B C8					mov ecx, eax
+ 00000D6C  2B F9					sub edi, ecx
+ 00000D6E  C3						ret
+					
+					; Requires the beginning of the job address to be stored in edi
+					; Puts the starting address of the priority into edx
+ 00000D6F				GetPriority:
+ 00000D6F  8B D7				mov edx, edi
+ 00000D71  83 C2 08				add edx, JOBLENGTH
+ 00000D74  C3					ret
+
+					; Requires the beginning of the job address to be stored in edi
+ 00000D75				GetRuntime:
+ 00000D75  8B D7				mov edx, edi
+ 00000D77  83 C2 08				add edx, JOBLENGTH
+ 00000D7A  83 C2 01				add edx, PRIORITYLENGTH
+ 00000D7D  C3					ret
+
+					; Requires the beginning of the job address to be stored in edi
+ 00000D7E				GetStatus:
+ 00000D7E  8B D7				mov edx, edi
+ 00000D80  83 C2 08				add edx, JOBLENGTH
+ 00000D83  83 C2 02				add edx, RUNTIMELENGTH
+ 00000D86  83 C2 02				add edx, STARTTIMELENGTH
+ 00000D89  83 C2 01				add edx, PRIORITYLENGTH
+ 00000D8C  C3					ret
+
+					; Requires the beginning of the job address to be stored in edi
+					; Stores the integer value of eax into the priority of the current record
+ 00000D8D				SetPriority:
+ 00000D8D  B9 00000001				mov ecx, PRIORITYLENGTH
+ 00000D92  E8 0000010C				call ConvertToInt
+ 00000D97  83 FA 07				cmp edx, 7
+ 00000D9A  7F 25				jg InvalidPriority
+ 00000D9C  83 FA 00				cmp edx, 0
+ 00000D9F  7C 20				jl InvalidPriority
+ 00000DA1  89 3D 00000000 R			mov temp1, edi
+ 00000DA7  89 35 00000004 R			mov temp2, esi
+ 00000DAD  83 C7 08				add edi, JOBLENGTH
+ 00000DB0  8B F0				mov esi, eax
+ 00000DB2  F3/ A4				rep movsb
+ 00000DB4  8B 3D 00000000 R			mov edi, temp1
+ 00000DBA  8B 35 00000004 R			mov esi, temp2
+ 00000DC0  C3					ret
+ 00000DC1					InvalidPriority:
+ 00000DC1  BA 00000669 R				mov edx, offset notPriority
+ 00000DC6  E8 00000000 E				call WriteString	
+ 00000DCB  C3						ret
+
+					; Requires the beginning of the job address to be stored in edi
+					; Stores the integer value of eax into the priority of the current record
+ 00000DCC				SetRuntime:
+ 00000DCC  B9 00000002				mov ecx, RUNTIMELENGTH
+ 00000DD1  E8 000000CD				call ConvertToInt
+ 00000DD6  83 FA 32				cmp edx, 50
+ 00000DD9  7F 28				jg InvalidRuntime
+ 00000DDB  83 FA 01				cmp edx, 1
+ 00000DDE  7C 23				jl InvalidRuntime
+ 00000DE0  89 3D 00000000 R			mov temp1, edi
+ 00000DE6  89 35 00000004 R			mov temp2, esi
+ 00000DEC  83 C7 08				add edi, JOBLENGTH
+ 00000DEF  83 C7 01				add edi, PRIORITYLENGTH
+ 00000DF2  8B F0				mov esi, eax
+ 00000DF4  F3/ A4				rep movsb
+ 00000DF6  8B 3D 00000000 R			mov edi, temp1
+ 00000DFC  8B 35 00000004 R			mov esi, temp2
+ 00000E02  C3					ret
+ 00000E03					InvalidRuntime:
+ 00000E03  BA 00000697 R				mov edx, offset notRunTime
+ 00000E08  E8 00000000 E				call WriteString
+ 00000E0D  C3						ret
+
+					; Requires the beginning of the job address to be stored in edi
+					; Stores the integer value of eax into the priority of the current record
+ 00000E0E				SetStarttime:
+ 00000E0E  B9 00000002				mov ecx, STARTTIMELENGTH
+ 00000E13  E8 0000008B				call ConvertToInt
+ 00000E18  83 FA 32				cmp edx, 50
+ 00000E1B  7F 2B				jg InvalidStarttime
+ 00000E1D  83 FA 01				cmp edx, 1
+ 00000E20  7C 26				jl InvalidStarttime
+ 00000E22  89 3D 00000000 R			mov temp1, edi
+ 00000E28  89 35 00000004 R			mov temp2, esi
+ 00000E2E  83 C7 08				add edi, JOBLENGTH
+ 00000E31  83 C7 01				add edi, PRIORITYLENGTH
+ 00000E34  83 C7 02				add edi, RUNTIMELENGTH
+ 00000E37  8B F0				mov esi, eax
+ 00000E39  F3/ A4				rep movsb
+ 00000E3B  8B 3D 00000000 R			mov edi, temp1
+ 00000E41  8B 35 00000004 R			mov esi, temp2
+ 00000E47  C3					ret
+ 00000E48					InvalidStarttime:
+							; Print something
+ 00000E48  C3						ret
+
+					; Requires the beginning of the job address to be stored in edi
+					; Stores the value stored in eax into the priority of the current record
+ 00000E49				SetStatus:
+ 00000E49  89 3D 00000000 R			mov temp1, edi
+ 00000E4F  89 1D 00000004 R			mov temp2, ebx
+ 00000E55  89 35 00000008 R			mov temp3, esi
+ 00000E5B  83 C7 08				add edi, JOBLENGTH
+ 00000E5E  83 C7 01				add edi, PRIORITYLENGTH
+ 00000E61  83 C7 02				add edi, RUNTIMELENGTH
+ 00000E64  83 C7 02				add edi, STARTTIMELENGTH
+ 00000E67  B3 41				mov bl, 'A'
+ 00000E69  38 18				cmp [eax], bl
+ 00000E6B  74 0E				je ChangeStatus
+ 00000E6D  B3 48				mov bl, 'H'
+ 00000E6F  38 18				cmp [eax], bl
+ 00000E71  74 08				je ChangeStatus
+ 00000E73  B3 52				mov bl, 'R'
+ 00000E75  38 18				cmp [eax], bl
+ 00000E77  74 02				je ChangeStatus
+ 00000E79  EB 0B				jmp InvalidStatus
+ 00000E7B					ChangeStatus:
+ 00000E7B  B9 00000001					mov ecx, STATUSLENGTH
+ 00000E80  8B F0					mov esi, eax
+ 00000E82  F3/ A4					rep movsb
+ 00000E84  EB 0A					jmp ReturnStatus
+ 00000E86					InvalidStatus:
+ 00000E86  BA 000006C6 R				mov edx, offset notStatus
+ 00000E8B  E8 00000000 E				call WriteString
+ 00000E90				ReturnStatus:
+ 00000E90  8B 3D 00000000 R			mov edi, temp1
+ 00000E96  8B 1D 00000004 R			mov ebx, temp2
+ 00000E9C  8B 35 00000008 R			mov esi, temp3
+ 00000EA2  C3					ret
+
+					; Requires a pointer to some string to be stored in eax and the max size stored in ecx
+					; Stores the integer in edx
+ 00000EA3				ConvertToInt:
+ 00000EA3  89 35 00000000 R		    mov temp1, esi
+ 00000EA9  89 0D 00000004 R			mov temp2, ecx
+ 00000EAF  A3 00000008 R			mov temp3, eax
+ 00000EB4  89 1D 0000000C R			mov temp4, ebx
+ 00000EBA  BE 00000000				mov esi, 0
+ 00000EBF  BA 00000000				mov edx, 0
+ 00000EC4  BB 00000000				mov ebx, 0
+ 00000EC9  B9 00000000				mov ecx, 0
+ 00000ECE  C7 05 000001F9 R			mov power, 0
+	   00000000
+ 00000ED8					NumOfCharLoop:
+ 00000ED8  03 C1					add eax, ecx
+ 00000EDA  8A 18					mov bl, [eax]
+ 00000EDC  A1 00000008 R				mov eax, temp3
+ 00000EE1  80 FB 39					cmp bl, 39h
+ 00000EE4  7F 10					jg ConvertPrep
+ 00000EE6  80 FB 30					cmp bl, 30h
+ 00000EE9  7C 0B					jl ConvertPrep
+ 00000EEB  41						inc ecx
+ 00000EEC  3B 0D 00000004 R				cmp ecx, temp2
+ 00000EF2  74 02					je ConvertPrep
+ 00000EF4  EB E2					jmp NumOfCharLoop
+ 00000EF6					ConvertPrep:
+ 00000EF6  03 C1					add eax, ecx
+ 00000EF8  48						dec eax
+ 00000EF9					IntLoop:
+ 00000EF9  83 F9 00					cmp ecx, 0
+ 00000EFC  7E 02					jle ReturnInt
+ 00000EFE  EB 18					jmp Convert
+ 00000F00					ReturnInt:
+ 00000F00  8B 35 00000000 R				mov esi, temp1
+ 00000F06  8B 0D 00000004 R				mov ecx, temp2
+ 00000F0C  A1 00000008 R				mov eax, temp3
+ 00000F11  8B 1D 0000000C R				mov ebx, temp4
+ 00000F17  C3						ret
+ 00000F18					Convert:
+ 00000F18  BB 00000000					mov ebx, 0
+ 00000F1D  49						dec ecx
+ 00000F1E  FF 05 000001F9 R				inc power
+ 00000F24  8A 18					mov bl, [eax]
+ 00000F26  48						dec eax
+ 00000F27  80 EB 30					sub bl, 30h
+ 00000F2A  E8 00000005					call PowerTen
+ 00000F2F  66| 03 D3					add dx, bx
+ 00000F32  EB C5					jmp IntLoop
+
+					; Multiplies ebx by 10 esi times
+ 00000F34				PowerTen:
+ 00000F34  8B 35 000001F9 R			mov esi, power
+ 00000F3A  83 3D 000001F9 R			cmp power, 1
+	   01
+ 00000F41  7F 01				jg PowerTenLoop
+ 00000F43  C3					ret
+ 00000F44					PowerTenLoop:
+ 00000F44  4E						dec esi
+ 00000F45  66| 6B DB 0A					imul bx, 10
+ 00000F49  83 FE 01					cmp esi, 1
+ 00000F4C  7F F6					jg PowerTenLoop
+ 00000F4E  C3						ret
+
+					; Converts an integer stored in edx into a character string that gets stored in a buffer whose start address is in eax
+					; Make sure the buffer has enough space to store the integer!
+					; Can't convert negative numbers!
+ 00000F4F				ConvertToString:
+ 00000F4F  A3 00000000 R			mov temp1, eax
+ 00000F54  89 15 00000004 R			mov temp2, edx
+ 00000F5A  89 15 00000008 R			mov temp3, edx
+ 00000F60  8B F8				mov edi, eax
+ 00000F62  C7 05 000001F9 R			mov power, 10
+	   0000000A
+ 00000F6C  C7 05 0000023A R			mov digits, 0
+	   00000000
+ 00000F76					GetNumOfDigits:
+							; Check if there is another digit
+ 00000F76  BA 00000000					mov edx, 0
+ 00000F7B  A1 00000008 R				mov eax, temp3
+ 00000F80  8B 1D 000001F9 R				mov ebx, power
+ 00000F86  F7 F3					div ebx
+ 00000F88  29 15 00000008 R				sub temp3, edx
+ 00000F8E  83 3D 00000008 R				cmp temp3, 0
+	   00
+ 00000F95  7E 19					jle ConvertDigit
+ 00000F97  FF 05 0000023A R				inc digits
+ 00000F9D  A1 000001F9 R				mov eax, power
+ 00000FA2  BB 0000000A					mov ebx, 10
+ 00000FA7  F7 E3					mul ebx
+ 00000FA9  A3 000001F9 R				mov power, eax
+ 00000FAE  EB C6					jmp GetNumOfDigits
+ 00000FB0					ConvertDigit:
+ 00000FB0  BA 00000000					mov edx, 0
+ 00000FB5  A1 000001F9 R				mov eax, power
+ 00000FBA  BB 0000000A					mov ebx, 10
+ 00000FBF  F7 F3					div ebx
+ 00000FC1  A3 000001F9 R				mov power, eax
+ 00000FC6  BA 00000000					mov edx, 0
+ 00000FCB  A1 00000004 R				mov eax, temp2
+ 00000FD0  8B 1D 000001F9 R				mov ebx, power
+ 00000FD6  F7 F3					div ebx
+ 00000FD8  89 15 00000004 R				mov temp2, edx
+ 00000FDE  8B 3D 00000000 R				mov edi, temp1
+ 00000FE4  04 30					add al, 30h
+ 00000FE6  88 07					mov [edi], al
+ 00000FE8  FF 05 00000000 R				inc temp1
+ 00000FEE  FF 0D 0000023A R				dec digits
+ 00000FF4  83 3D 0000023A R				cmp digits, 0
+	   00
+ 00000FFB  7D B3					jge ConvertDigit
+ 00000FFD  C3						ret
+
+					; Compares each job name stored in records with the character buffer in edi
+					; If it finds an equal job name, then it sets edx equal to the starting address of the job
+					; If it doesn't find an equal job name, then it sets edx equal to -1
+ 00000FFE				FindJob:
+ 00000FFE  8B D6				mov edx, esi
+ 00001000  BE 000000FC R			mov esi, offset records
+ 00001005  BB 00000000				mov ebx, 0
+ 0000100A					FindJobLoop:
+ 0000100A  8B C7					mov eax, edi
+ 0000100C  81 FB 0000008C				cmp ebx, TOTALRECORDSLENGTH
+ 00001012  7D 22					jge NoJobFound
+ 00001014  B9 00000008					mov ecx, JOBLENGTH
+ 00001019  FC						cld
+ 0000101A  F3/ A6					repe cmpsb
+ 0000101C  8B F8					mov edi, eax
+ 0000101E  74 0C					je FoundJob
+ 00001020  83 C3 0E					add ebx, RECORDLENGTH
+ 00001023  BE 000000FC R				mov esi, offset records
+ 00001028  03 F3					add esi, ebx
+ 0000102A  EB DE					jmp FindJobLoop
+ 0000102C					FoundJob:
+ 0000102C  BE 000000FC R				mov esi, offset records
+ 00001031  03 F3					add esi, ebx
+ 00001033  87 F2					xchg esi, edx
+ 00001035  C3						ret
+ 00001036					NoJobFound:
+ 00001036  BE FFFFFFFF					mov esi, -1
+ 0000103B  87 F2					xchg esi, edx
+ 0000103D  C3						ret
+
+					; Reads from a memory address stored in esi and copies into a buffer in edi, and puts the number of chars copied into ecx
+ 0000103E				GetString:
+ 0000103E  B9 00000000				mov ecx, 0
+ 00001043					GetStringLoop:
+ 00001043  8A 1E					mov bl, [esi]
+ 00001045  80 FB 00					cmp bl, 0
+ 00001048  74 1D					je CopyDone
+ 0000104A  80 FB 20					cmp bl, ' '
+ 0000104D  74 18					je CopyDone
+ 0000104F  8A 1E					mov bl, [esi]
+ 00001051  88 1C 0F					mov [edi + ecx], bl
+ 00001054  46						inc esi
+ 00001055  41						inc ecx
+ 00001056  FF 0D 0000024E R				dec maxChars
+ 0000105C  83 3D 0000024E R				cmp maxChars, 0
+	   00
+ 00001063  74 02					je CopyDone
+ 00001065  EB DC					jmp GetStringLoop
+ 00001067					CopyDone:
+ 00001067  C7 05 0000024E R				mov maxChars, 0
+	   00000000
+ 00001071  C3						ret
+
+					; Reads from a memory address stored in esi and sets esi equal to the address of the first non space character
+					; Each element in the buffer must be only 1 byte
+ 00001072				SkipSpace:
+ 00001072  89 1D 00000000 R			mov temp1, ebx
+ 00001078					SkipLoop:
+ 00001078  8A 1E					mov bl, [esi]
+ 0000107A  80 FB 00					cmp bl, 0
+ 0000107D  74 0A					je SkipDone
+ 0000107F  80 FB 20					cmp bl, ' '
+ 00001082  74 0C					je Skip
+ 00001084  80 FB 09					cmp bl, 09h
+ 00001087  74 07					je Skip
+ 00001089					SkipDone:
+ 00001089  8B 1D 00000000 R				mov ebx, temp1
+ 0000108F  C3						ret
+ 00001090					Skip:
+ 00001090  46						inc esi
+ 00001091  EB E5					jmp SkipLoop
+
+					; Reads a buffer address from eax and the length of the buffer in ecx
+					; Sets every element in the buffer to ' '
+ 00001093				ClearBuffer:
+ 00001093  89 0D 00000000 R			mov temp1, ecx
+ 00001099  89 1D 00000004 R			mov temp2, ebx
+ 0000109F					ClearBuffLoop:
+ 0000109F  83 F9 00					cmp ecx, 0
+ 000010A2  7F 0D					jg ClearChar
+ 000010A4  8B 0D 00000000 R				mov ecx, temp1
+ 000010AA  8B 1D 00000004 R				mov ebx, temp2
+ 000010B0  C3						ret
+ 000010B1					ClearChar:
+ 000010B1  B3 20					mov bl, ' '
+ 000010B3  88 18					mov [eax], bl
+ 000010B5  40						inc eax
+ 000010B6  49						dec ecx
+ 000010B7  8A 18					mov bl, [eax]
+ 000010B9  80 FB 00					cmp bl, 0
+ 000010BC  75 E1					jne ClearBuffLoop
+ 000010BE  8B 0D 00000000 R				mov ecx, temp1
+ 000010C4  8B 1D 00000004 R				mov ebx, temp2
+ 000010CA  C3						ret
+
+					; Ends the program
+ 000010CB				QuitCommand:
+						exit
+ 000010CB  6A 00	   *	    push   +000000000h
+ 000010CD  E8 00000000 E   *	    call   ExitProcess
+ 000010D2					Main endp
+				end Main
+Microsoft (R) Macro Assembler Version 14.24.28316.0	    03/31/20 16:49:20
+:: Assembly Language Programming Project 3 Operating Syste   Symbols 2 - 1
+
+
+
+
+Structures and Unions:
+
+                N a m e                  Size
+                                         Offset      Type
+
+CONSOLE_CURSOR_INFO  . . . . . .	 00000008
+  dwSize . . . . . . . . . . . .	 00000000	 DWord
+  bVisible . . . . . . . . . . .	 00000004	 DWord
+CONSOLE_SCREEN_BUFFER_INFO . . .	 00000016
+  dwSize . . . . . . . . . . . .	 00000000	 DWord
+  dwCursorPosition . . . . . . .	 00000004	 DWord
+  wAttributes  . . . . . . . . .	 00000008	 Word
+  srWindow . . . . . . . . . . .	 0000000A	 QWord
+  dwMaximumWindowSize  . . . . .	 00000012	 DWord
+COORD  . . . . . . . . . . . . .	 00000004
+  X  . . . . . . . . . . . . . .	 00000000	 Word
+  Y  . . . . . . . . . . . . . .	 00000002	 Word
+FILETIME . . . . . . . . . . . .	 00000008
+  loDateTime . . . . . . . . . .	 00000000	 DWord
+  hiDateTime . . . . . . . . . .	 00000004	 DWord
+FOCUS_EVENT_RECORD . . . . . . .	 00000004
+  bSetFocus  . . . . . . . . . .	 00000000	 DWord
+FPU_ENVIRON  . . . . . . . . . .	 0000001C
+  controlWord  . . . . . . . . .	 00000000	 Word
+  statusWord . . . . . . . . . .	 00000004	 Word
+  tagWord  . . . . . . . . . . .	 00000008	 Word
+  instrPointerOffset . . . . . .	 0000000C	 DWord
+  instrPointerSelector . . . . .	 00000010	 DWord
+  operandPointerOffset . . . . .	 00000014	 DWord
+  operandPointerSelector . . . .	 00000018	 Word
+INPUT_RECORD . . . . . . . . . .	 00000014
+  EventType  . . . . . . . . . .	 00000000	 Word
+  Event  . . . . . . . . . . . .	 00000004	 XmmWord
+  bKeyDown . . . . . . . . . . .	 00000000	 DWord
+  wRepeatCount . . . . . . . . .	 00000004	 Word
+  wVirtualKeyCode  . . . . . . .	 00000006	 Word
+  wVirtualScanCode . . . . . . .	 00000008	 Word
+  uChar  . . . . . . . . . . . .	 0000000A	 Word
+  UnicodeChar  . . . . . . . . .	 00000000	 Word
+  AsciiChar  . . . . . . . . . .	 00000000	 Byte
+  dwControlKeyState  . . . . . .	 0000000C	 DWord
+  dwMousePosition  . . . . . . .	 00000000	 DWord
+  dwButtonState  . . . . . . . .	 00000004	 DWord
+  dwMouseControlKeyState . . . .	 00000008	 DWord
+  dwEventFlags . . . . . . . . .	 0000000C	 DWord
+  dwSize . . . . . . . . . . . .	 00000000	 DWord
+  dwCommandId  . . . . . . . . .	 00000000	 DWord
+  bSetFocus  . . . . . . . . . .	 00000000	 DWord
+KEY_EVENT_RECORD . . . . . . . .	 00000010
+  bKeyDown . . . . . . . . . . .	 00000000	 DWord
+  wRepeatCount . . . . . . . . .	 00000004	 Word
+  wVirtualKeyCode  . . . . . . .	 00000006	 Word
+  wVirtualScanCode . . . . . . .	 00000008	 Word
+  uChar  . . . . . . . . . . . .	 0000000A	 Word
+  UnicodeChar  . . . . . . . . .	 00000000	 Word
+  AsciiChar  . . . . . . . . . .	 00000000	 Byte
+  dwControlKeyState  . . . . . .	 0000000C	 DWord
+MENU_EVENT_RECORD  . . . . . . .	 00000004
+  dwCommandId  . . . . . . . . .	 00000000	 DWord
+MOUSE_EVENT_RECORD . . . . . . .	 00000010
+  dwMousePosition  . . . . . . .	 00000000	 DWord
+  dwButtonState  . . . . . . . .	 00000004	 DWord
+  dwMouseControlKeyState . . . .	 00000008	 DWord
+  dwEventFlags . . . . . . . . .	 0000000C	 DWord
+SMALL_RECT . . . . . . . . . . .	 00000008
+  Left . . . . . . . . . . . . .	 00000000	 Word
+  Top  . . . . . . . . . . . . .	 00000002	 Word
+  Right  . . . . . . . . . . . .	 00000004	 Word
+  Bottom . . . . . . . . . . . .	 00000006	 Word
+SYSTEMTIME . . . . . . . . . . .	 00000010
+  wYear  . . . . . . . . . . . .	 00000000	 Word
+  wMonth . . . . . . . . . . . .	 00000002	 Word
+  wDayOfWeek . . . . . . . . . .	 00000004	 Word
+  wDay . . . . . . . . . . . . .	 00000006	 Word
+  wHour  . . . . . . . . . . . .	 00000008	 Word
+  wMinute  . . . . . . . . . . .	 0000000A	 Word
+  wSecond  . . . . . . . . . . .	 0000000C	 Word
+  wMilliseconds  . . . . . . . .	 0000000E	 Word
+WINDOW_BUFFER_SIZE_RECORD  . . .	 00000004
+  dwSize . . . . . . . . . . . .	 00000000	 DWord
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+FLAT . . . . . . . . . . . . . .	GROUP
+STACK  . . . . . . . . . . . . .	32 Bit	 00001000 Para	  Stack	  'STACK'	 
+_DATA  . . . . . . . . . . . . .	32 Bit	 000008E1 Para	  Public  'DATA'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 000010D2 Para	  Public  'CODE'	
+
+
+Procedures, parameters, and locals:
+
+                N a m e                 Type     Value    Attr
+
+CloseFile  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+CloseHandle  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Clrscr . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+CreateFileA  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+CreateOutputFile . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Crlf . . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Delay  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+DumpMem  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+DumpRegs . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ExitProcess  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+FileTimeToDosDateTime  . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+FileTimeToSystemTime . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+FlushConsoleInputBuffer  . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+FormatMessageA . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetCommandLineA  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetCommandTail . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetConsoleCP . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetConsoleCursorInfo . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetConsoleMode . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetConsoleScreenBufferInfo . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetDateTime  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetFileTime  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetKeyState  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetLastError . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetLocalTime . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetMaxXY . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetMseconds  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetNumberOfConsoleInputEvents  .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetProcessHeap . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetStdHandle . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetSystemTime  . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetTextColor . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+GetTickCount . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Gotoxy . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+HeapAlloc  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+HeapCreate . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+HeapDestroy  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+HeapFree . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+HeapSize . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+IsDigit  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+LocalFree  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Main . . . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 000010D2 Public STDCALL
+  Menu . . . . . . . . . . . . .	L Near	 0000000F _TEXT	
+  JobInit  . . . . . . . . . . .	L Near	 0000008D _TEXT	
+  JobInitLoop  . . . . . . . . .	L Near	 0000009C _TEXT	
+  JobInitDone  . . . . . . . . .	L Near	 000000BE _TEXT	
+  CommandHandler . . . . . . . .	L Near	 000000BF _TEXT	
+  StepCheck  . . . . . . . . . .	L Near	 000000C5 _TEXT	
+  RunCheck . . . . . . . . . . .	L Near	 000000E8 _TEXT	
+  LoadCheck  . . . . . . . . . .	L Near	 0000010B _TEXT	
+  ShowCheck  . . . . . . . . . .	L Near	 0000012E _TEXT	
+  HelpCheck  . . . . . . . . . .	L Near	 00000151 _TEXT	
+  HoldCheck  . . . . . . . . . .	L Near	 00000174 _TEXT	
+  ChangeCheck  . . . . . . . . .	L Near	 00000197 _TEXT	
+  KillCheck  . . . . . . . . . .	L Near	 000001BA _TEXT	
+  QuitCheck  . . . . . . . . . .	L Near	 000001DD _TEXT	
+  InvalidCommand . . . . . . . .	L Near	 00000200 _TEXT	
+  InvalidLoad  . . . . . . . . .	L Near	 0000020B _TEXT	
+  PromptJob  . . . . . . . . . .	L Near	 00000291 _TEXT	
+  PromptPri  . . . . . . . . . .	L Near	 000002A0 _TEXT	
+  StepCommand  . . . . . . . . .	L Near	 000002AF _TEXT	
+  InvalidStep  . . . . . . . . .	L Near	 00000306 _TEXT	
+  OneStep  . . . . . . . . . . .	L Near	 00000311 _TEXT	
+  StepLoop . . . . . . . . . . .	L Near	 0000031B _TEXT	
+  JobDone  . . . . . . . . . . .	L Near	 000003E2 _TEXT	
+  NoValidJobs  . . . . . . . . .	L Near	 0000048E _TEXT	
+  PrintStepping  . . . . . . . .	L Near	 000004A8 _TEXT	
+  SkipPrint  . . . . . . . . . .	L Near	 00000548 _TEXT	
+  FindHighPriority . . . . . . .	L Near	 00000572 _TEXT	
+  FindPriLoop  . . . . . . . . .	L Near	 00000592 _TEXT	
+  ContinuePriLoop  . . . . . . .	L Near	 0000059E _TEXT	
+  FoundPri . . . . . . . . . . .	L Near	 000005D5 _TEXT	
+  SkipPriCheck . . . . . . . . .	L Near	 000005DB _TEXT	
+  MaybeFoundPri  . . . . . . . .	L Near	 000005E0 _TEXT	
+  NoRunsFoundSoFar . . . . . . .	L Near	 000005F7 _TEXT	
+  KeepLooking  . . . . . . . . .	L Near	 00000610 _TEXT	
+  NoRunModes . . . . . . . . . .	L Near	 00000630 _TEXT	
+  RunCommand . . . . . . . . . .	L Near	 0000064F _TEXT	
+  ContinueRun  . . . . . . . . .	L Near	 00000692 _TEXT	
+  LoadCommand  . . . . . . . . .	L Near	 000006E3 _TEXT	
+  ContinueLoad . . . . . . . . .	L Near	 00000760 _TEXT	
+  TooManyParams  . . . . . . . .	L Near	 00000884 _TEXT	
+  InvalidLoadPri . . . . . . . .	L Near	 00000893 _TEXT	
+  InvalidLoadRun . . . . . . . .	L Near	 000008A2 _TEXT	
+  NoJobsAvailable  . . . . . . .	L Near	 000008B1 _TEXT	
+  NameTooLong  . . . . . . . . .	L Near	 000008B2 _TEXT	
+  NotUniqueJob . . . . . . . . .	L Near	 000008C8 _TEXT	
+  FindAvailable  . . . . . . . .	L Near	 000008D7 _TEXT	
+  FindAvailLoop  . . . . . . . .	L Near	 000008F1 _TEXT	
+  NoAvailRecords . . . . . . . .	L Near	 00000920 _TEXT	
+  ShowCommand  . . . . . . . . .	L Near	 0000093B _TEXT	
+  ShowLoop . . . . . . . . . . .	L Near	 00000968 _TEXT	
+  SkipShowJob  . . . . . . . . .	L Near	 00000A57 _TEXT	
+  ShowDone . . . . . . . . . . .	L Near	 00000A62 _TEXT	
+  JobExists  . . . . . . . . . .	L Near	 00000A71 _TEXT	
+  HelpCommand  . . . . . . . . .	L Near	 00000A7C _TEXT	
+  HoldCommand  . . . . . . . . .	L Near	 00000AD7 _TEXT	
+  ContinueHold . . . . . . . . .	L Near	 00000B1A _TEXT	
+  ChangeCommand  . . . . . . . .	L Near	 00000B6B _TEXT	
+  ContinueChange . . . . . . . .	L Near	 00000BAE _TEXT	
+  KillCommand  . . . . . . . . .	L Near	 00000C7F _TEXT	
+  ContinueKill1  . . . . . . . .	L Near	 00000CC7 _TEXT	
+  ContinueKill2  . . . . . . . .	L Near	 00000CE7 _TEXT	
+  LowerCase  . . . . . . . . . .	L Near	 00000D4A _TEXT	
+  LowerCaseLoop  . . . . . . . .	L Near	 00000D4E _TEXT	
+  ToLower  . . . . . . . . . . .	L Near	 00000D57 _TEXT	
+  LowerReturn  . . . . . . . . .	L Near	 00000D6A _TEXT	
+  GetPriority  . . . . . . . . .	L Near	 00000D6F _TEXT	
+  GetRuntime . . . . . . . . . .	L Near	 00000D75 _TEXT	
+  GetStatus  . . . . . . . . . .	L Near	 00000D7E _TEXT	
+  SetPriority  . . . . . . . . .	L Near	 00000D8D _TEXT	
+  InvalidPriority  . . . . . . .	L Near	 00000DC1 _TEXT	
+  SetRuntime . . . . . . . . . .	L Near	 00000DCC _TEXT	
+  InvalidRuntime . . . . . . . .	L Near	 00000E03 _TEXT	
+  SetStarttime . . . . . . . . .	L Near	 00000E0E _TEXT	
+  InvalidStarttime . . . . . . .	L Near	 00000E48 _TEXT	
+  SetStatus  . . . . . . . . . .	L Near	 00000E49 _TEXT	
+  ChangeStatus . . . . . . . . .	L Near	 00000E7B _TEXT	
+  InvalidStatus  . . . . . . . .	L Near	 00000E86 _TEXT	
+  ReturnStatus . . . . . . . . .	L Near	 00000E90 _TEXT	
+  ConvertToInt . . . . . . . . .	L Near	 00000EA3 _TEXT	
+  NumOfCharLoop  . . . . . . . .	L Near	 00000ED8 _TEXT	
+  ConvertPrep  . . . . . . . . .	L Near	 00000EF6 _TEXT	
+  IntLoop  . . . . . . . . . . .	L Near	 00000EF9 _TEXT	
+  ReturnInt  . . . . . . . . . .	L Near	 00000F00 _TEXT	
+  Convert  . . . . . . . . . . .	L Near	 00000F18 _TEXT	
+  PowerTen . . . . . . . . . . .	L Near	 00000F34 _TEXT	
+  PowerTenLoop . . . . . . . . .	L Near	 00000F44 _TEXT	
+  ConvertToString  . . . . . . .	L Near	 00000F4F _TEXT	
+  GetNumOfDigits . . . . . . . .	L Near	 00000F76 _TEXT	
+  ConvertDigit . . . . . . . . .	L Near	 00000FB0 _TEXT	
+  FindJob  . . . . . . . . . . .	L Near	 00000FFE _TEXT	
+  FindJobLoop  . . . . . . . . .	L Near	 0000100A _TEXT	
+  FoundJob . . . . . . . . . . .	L Near	 0000102C _TEXT	
+  NoJobFound . . . . . . . . . .	L Near	 00001036 _TEXT	
+  GetString  . . . . . . . . . .	L Near	 0000103E _TEXT	
+  GetStringLoop  . . . . . . . .	L Near	 00001043 _TEXT	
+  CopyDone . . . . . . . . . . .	L Near	 00001067 _TEXT	
+  SkipSpace  . . . . . . . . . .	L Near	 00001072 _TEXT	
+  SkipLoop . . . . . . . . . . .	L Near	 00001078 _TEXT	
+  SkipDone . . . . . . . . . . .	L Near	 00001089 _TEXT	
+  Skip . . . . . . . . . . . . .	L Near	 00001090 _TEXT	
+  ClearBuffer  . . . . . . . . .	L Near	 00001093 _TEXT	
+  ClearBuffLoop  . . . . . . . .	L Near	 0000109F _TEXT	
+  ClearChar  . . . . . . . . . .	L Near	 000010B1 _TEXT	
+  QuitCommand  . . . . . . . . .	L Near	 000010CB _TEXT	
+MessageBoxA  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+MsgBoxAsk  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+MsgBox . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+OpenInputFile  . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ParseDecimal32 . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ParseInteger32 . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+PeekConsoleInputA  . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Random32 . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+RandomRange  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Randomize  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadChar . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadConsoleA . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadConsoleInputA  . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadDec  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadFile . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadFloat  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadFromFile . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadHex  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadInt  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadKeyFlush . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadKey  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ReadString . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetConsoleCursorInfo . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetConsoleCursorPosition . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetConsoleMode . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetConsoleScreenBufferSize . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetConsoleTextAttribute  . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetConsoleTitleA . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetConsoleWindowInfo . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetFilePointer . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetLocalTime . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SetTextColor . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+ShowFPUStack . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Sleep  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+StrLength  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Str_compare  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Str_copy . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Str_length . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Str_trim . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+Str_ucase  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+SystemTimeToFileTime . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WaitMsg  . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteBinB  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteBin . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteChar  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteConsoleA  . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteConsoleOutputAttribute  . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteConsoleOutputCharacterA . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteDec . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteFile  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteFloat . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteHexB  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteHex . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteInt . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteStackFrameName  . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteStackFrame  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteString  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteToFile  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+WriteWindowsMsg  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+printf . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
+scanf  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
+wsprintfA  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+@CodeSize  . . . . . . . . . . .	Number	 00000000h   
+@DataSize  . . . . . . . . . . .	Number	 00000000h   
+@Interface . . . . . . . . . . .	Number	 00000003h   
+@Model . . . . . . . . . . . . .	Number	 00000007h   
+@code  . . . . . . . . . . . . .	Text   	 _TEXT
+@data  . . . . . . . . . . . . .	Text   	 FLAT
+@fardata?  . . . . . . . . . . .	Text   	 FLAT
+@fardata . . . . . . . . . . . .	Text   	 FLAT
+@stack . . . . . . . . . . . . .	Text   	 FLAT
+ALT_MASK . . . . . . . . . . . .	Number	 00000003h   
+CAPSLOCK_ON  . . . . . . . . . .	Number	 00000080h   
+CHANGE . . . . . . . . . . . . .	Byte	 00000043 _DATA	
+CREATE_ALWAYS  . . . . . . . . .	Number	 00000002h   
+CREATE_NEW . . . . . . . . . . .	Number	 00000001h   
+CTRL_MASK  . . . . . . . . . . .	Number	 0000000Ch   
+CreateFile . . . . . . . . . . .	Text   	 CreateFileA
+DO_NOT_SHARE . . . . . . . . . .	Number	 00000000h   
+ENABLE_ECHO_INPUT  . . . . . . .	Number	 00000004h   
+ENABLE_LINE_INPUT  . . . . . . .	Number	 00000002h   
+ENABLE_MOUSE_INPUT . . . . . . .	Number	 00000010h   
+ENABLE_PROCESSED_INPUT . . . . .	Number	 00000001h   
+ENABLE_PROCESSED_OUTPUT  . . . .	Number	 00000001h   
+ENABLE_WINDOW_INPUT  . . . . . .	Number	 00000008h   
+ENABLE_WRAP_AT_EOL_OUTPUT  . . .	Number	 00000002h   
+ENHANCED_KEY . . . . . . . . . .	Number	 00000100h   
+ENTRYLENGTH  . . . . . . . . . .	Number	 0000000Ah   
+FALSE  . . . . . . . . . . . . .	Number	 00000000h   
+FILE_APPEND_DATA . . . . . . . .	Number	 00000004h   
+FILE_ATTRIBUTE_ARCHIVE . . . . .	Number	 00000020h   
+FILE_ATTRIBUTE_COMPRESSED  . . .	Number	 00000800h   
+FILE_ATTRIBUTE_DEVICE  . . . . .	Number	 00000040h   
+FILE_ATTRIBUTE_DIRECTORY . . . .	Number	 00000010h   
+FILE_ATTRIBUTE_ENCRYPTED . . . .	Number	 00004000h   
+FILE_ATTRIBUTE_HIDDEN  . . . . .	Number	 00000002h   
+FILE_ATTRIBUTE_NORMAL  . . . . .	Number	 00000080h   
+FILE_ATTRIBUTE_NOT_CONTENT_INDEXED .	Number	 00002000h   
+FILE_ATTRIBUTE_OFFLINE . . . . .	Number	 00001000h   
+FILE_ATTRIBUTE_READONLY  . . . .	Number	 00000001h   
+FILE_ATTRIBUTE_REPARSE_POINT . .	Number	 00000400h   
+FILE_ATTRIBUTE_SPARSE_FILE . . .	Number	 00000200h   
+FILE_ATTRIBUTE_SYSTEM  . . . . .	Number	 00000004h   
+FILE_ATTRIBUTE_TEMPORARY . . . .	Number	 00000100h   
+FILE_BEGIN . . . . . . . . . . .	Number	 00000000h   
+FILE_CURRENT . . . . . . . . . .	Number	 00000001h   
+FILE_DELETE_CHILD  . . . . . . .	Number	 00000040h   
+FILE_END . . . . . . . . . . . .	Number	 00000002h   
+FILE_READ_DATA . . . . . . . . .	Number	 00000001h   
+FILE_SHARE_DELETE  . . . . . . .	Number	 00000004h   
+FILE_SHARE_READ  . . . . . . . .	Number	 00000001h   
+FILE_SHARE_WRITE . . . . . . . .	Number	 00000002h   
+FILE_WRITE_DATA  . . . . . . . .	Number	 00000002h   
+FOCUS_EVENT  . . . . . . . . . .	Number	 00000010h   
+FORMAT_MESSAGE_ALLOCATE_BUFFER .	Number	 00000100h   
+FORMAT_MESSAGE_FROM_SYSTEM . . .	Number	 00001000h   
+FormatMessage  . . . . . . . . .	Text   	 FormatMessageA
+GENERIC_ALL  . . . . . . . . . .	Number	 10000000h   
+GENERIC_EXECUTE  . . . . . . . .	Number	 20000000h   
+GENERIC_READ . . . . . . . . . .	Number	 -80000000h   
+GENERIC_WRITE  . . . . . . . . .	Number	 40000000h   
+GetCommandLine . . . . . . . . .	Text   	 GetCommandLineA
+HANDLE . . . . . . . . . . . . .	Text   	 DWORD
+HEAP_GENERATE_EXCEPTIONS . . . .	Number	 00000004h   
+HEAP_GROWABLE  . . . . . . . . .	Number	 00000002h   
+HEAP_NO_SERIALIZE  . . . . . . .	Number	 00000001h   
+HEAP_REALLOC_IN_PLACE_ONLY . . .	Number	 00000010h   
+HEAP_ZERO_MEMORY . . . . . . . .	Number	 00000008h   
+HELP . . . . . . . . . . . . . .	Byte	 00000021 _DATA	
+HOLD . . . . . . . . . . . . . .	Byte	 0000002F _DATA	
+IDABORT  . . . . . . . . . . . .	Number	 00000003h   
+IDCANCEL . . . . . . . . . . . .	Number	 00000002h   
+IDCLOSE  . . . . . . . . . . . .	Number	 00000008h   
+IDCONTINUE . . . . . . . . . . .	Number	 0000000Bh   
+IDHELP . . . . . . . . . . . . .	Number	 00000009h   
+IDIGNORE . . . . . . . . . . . .	Number	 00000005h   
+IDNO . . . . . . . . . . . . . .	Number	 00000007h   
+IDOK . . . . . . . . . . . . . .	Number	 00000001h   
+IDRETRY  . . . . . . . . . . . .	Number	 00000004h   
+IDTIMEOUT  . . . . . . . . . . .	Number	 00007D00h   
+IDTRYAGAIN . . . . . . . . . . .	Number	 0000000Ah   
+IDYES  . . . . . . . . . . . . .	Number	 00000006h   
+INPUTLENGTH  . . . . . . . . . .	Number	 00000032h   
+INVALID_HANDLE_VALUE . . . . . .	Number	 -00000001h   
+JOBLENGTH  . . . . . . . . . . .	Number	 00000008h   
+KBDOWN_FLAG  . . . . . . . . . .	Number	 00000001h   
+KEY_EVENT  . . . . . . . . . . .	Number	 00000001h   
+KEY_MASKS  . . . . . . . . . . .	Number	 0000001Fh   
+KILL . . . . . . . . . . . . . .	Byte	 00000034 _DATA	
+LEFT_ALT_PRESSED . . . . . . . .	Number	 00000002h   
+LEFT_CTRL_PRESSED  . . . . . . .	Number	 00000008h   
+LOAD . . . . . . . . . . . . . .	Byte	 00000026 _DATA	
+MB_ABORTRETRYIGNORE  . . . . . .	Number	 00000002h   
+MB_APPLMODAL . . . . . . . . . .	Number	 00000000h   
+MB_CANCELTRYCONTINUE . . . . . .	Number	 00000006h   
+MB_DEFBUTTON1  . . . . . . . . .	Number	 00000000h   
+MB_DEFBUTTON2  . . . . . . . . .	Number	 00000100h   
+MB_DEFBUTTON3  . . . . . . . . .	Number	 00000200h   
+MB_DEFBUTTON4  . . . . . . . . .	Number	 00000300h   
+MB_HELP  . . . . . . . . . . . .	Number	 00004000h   
+MB_ICONASTERISK  . . . . . . . .	Number	 00000040h   
+MB_ICONERROR . . . . . . . . . .	Number	 00000010h   
+MB_ICONEXCLAMATION . . . . . . .	Number	 00000030h   
+MB_ICONHAND  . . . . . . . . . .	Number	 00000010h   
+MB_ICONINFORMATION . . . . . . .	Number	 00000040h   
+MB_ICONQUESTION  . . . . . . . .	Number	 00000020h   
+MB_ICONSTOP  . . . . . . . . . .	Number	 00000010h   
+MB_ICONWARNING . . . . . . . . .	Number	 00000030h   
+MB_OKCANCEL  . . . . . . . . . .	Number	 00000001h   
+MB_OK  . . . . . . . . . . . . .	Number	 00000000h   
+MB_RETRYCANCEL . . . . . . . . .	Number	 00000005h   
+MB_SYSTEMMODAL . . . . . . . . .	Number	 00001000h   
+MB_TASKMODAL . . . . . . . . . .	Number	 00002000h   
+MB_USERICON  . . . . . . . . . .	Number	 00000080h   
+MB_YESNOCANCEL . . . . . . . . .	Number	 00000003h   
+MB_YESNO . . . . . . . . . . . .	Number	 00000004h   
+MENU_EVENT . . . . . . . . . . .	Number	 00000008h   
+MOUSE_EVENT  . . . . . . . . . .	Number	 00000002h   
+MessageBox . . . . . . . . . . .	Text   	 MessageBoxA
+NULL . . . . . . . . . . . . . .	Number	 00000000h   
+NUMLOCK_ON . . . . . . . . . . .	Number	 00000020h   
+NoJobsR  . . . . . . . . . . . .	Byte	 00000577 _DATA	
+OPEN_ALWAYS  . . . . . . . . . .	Number	 00000004h   
+OPEN_EXISTING  . . . . . . . . .	Number	 00000003h   
+PRIORITYLENGTH . . . . . . . . .	Number	 00000001h   
+PeekConsoleInput . . . . . . . .	Text   	 PeekConsoleInputA
+QUIT . . . . . . . . . . . . . .	Byte	 0000001C _DATA	
+RECORDLENGTH . . . . . . . . . .	Number	 0000000Eh   
+RECORDNUM  . . . . . . . . . . .	Number	 0000000Ah   
+RIGHT_ALT_PRESSED  . . . . . . .	Number	 00000001h   
+RIGHT_CTRL_PRESSED . . . . . . .	Number	 00000004h   
+RUNTIMELENGTH  . . . . . . . . .	Number	 00000002h   
+RUN  . . . . . . . . . . . . . .	Byte	 0000002B _DATA	
+ReadConsoleInput . . . . . . . .	Text   	 ReadConsoleInputA
+ReadConsole  . . . . . . . . . .	Text   	 ReadConsoleA
+SCROLLLOCK_ON  . . . . . . . . .	Number	 00000040h   
+SHIFT_MASK . . . . . . . . . . .	Number	 00000010h   
+SHIFT_PRESSED  . . . . . . . . .	Number	 00000010h   
+SHOW . . . . . . . . . . . . . .	Byte	 00000039 _DATA	
+STARTTIMELENGTH  . . . . . . . .	Number	 00000002h   
+STATUSLENGTH . . . . . . . . . .	Number	 00000001h   
+STD_ERROR_HANDLE . . . . . . . .	Number	 -0000000Ch   
+STD_INPUT_HANDLE . . . . . . . .	Number	 -0000000Ah   
+STD_OUTPUT_HANDLE  . . . . . . .	Number	 -0000000Bh   
+STEPPRINTLENGTH  . . . . . . . .	Number	 00000014h   
+STEP . . . . . . . . . . . . . .	Byte	 0000003E _DATA	
+SetConsoleTitle  . . . . . . . .	Text   	 SetConsoleTitleA
+TAB  . . . . . . . . . . . . . .	Number	 00000009h   
+TOTALRECORDSLENGTH . . . . . . .	Number	 0000008Ch   
+TRUE . . . . . . . . . . . . . .	Number	 00000001h   
+TRUNCATE_EXISTING  . . . . . . .	Number	 00000005h   
+VK_11  . . . . . . . . . . . . .	Number	 000000BDh   
+VK_12  . . . . . . . . . . . . .	Number	 000000BBh   
+VK_ADD . . . . . . . . . . . . .	Number	 0000006Bh   
+VK_BACK  . . . . . . . . . . . .	Number	 00000008h   
+VK_CANCEL  . . . . . . . . . . .	Number	 00000003h   
+VK_CAPITAL . . . . . . . . . . .	Number	 00000014h   
+VK_CLEAR . . . . . . . . . . . .	Number	 0000000Ch   
+VK_CONTROL . . . . . . . . . . .	Number	 00000011h   
+VK_DECIMAL . . . . . . . . . . .	Number	 0000006Eh   
+VK_DELETE  . . . . . . . . . . .	Number	 0000002Eh   
+VK_DIVIDE  . . . . . . . . . . .	Number	 0000006Fh   
+VK_DOWN  . . . . . . . . . . . .	Number	 00000028h   
+VK_END . . . . . . . . . . . . .	Number	 00000023h   
+VK_ESCAPE  . . . . . . . . . . .	Number	 0000001Bh   
+VK_EXECUTE . . . . . . . . . . .	Number	 0000002Bh   
+VK_F10 . . . . . . . . . . . . .	Number	 00000079h   
+VK_F11 . . . . . . . . . . . . .	Number	 0000007Ah   
+VK_F12 . . . . . . . . . . . . .	Number	 0000007Bh   
+VK_F13 . . . . . . . . . . . . .	Number	 0000007Ch   
+VK_F14 . . . . . . . . . . . . .	Number	 0000007Dh   
+VK_F15 . . . . . . . . . . . . .	Number	 0000007Eh   
+VK_F16 . . . . . . . . . . . . .	Number	 0000007Fh   
+VK_F17 . . . . . . . . . . . . .	Number	 00000080h   
+VK_F18 . . . . . . . . . . . . .	Number	 00000081h   
+VK_F19 . . . . . . . . . . . . .	Number	 00000082h   
+VK_F1  . . . . . . . . . . . . .	Number	 00000070h   
+VK_F20 . . . . . . . . . . . . .	Number	 00000083h   
+VK_F21 . . . . . . . . . . . . .	Number	 00000084h   
+VK_F22 . . . . . . . . . . . . .	Number	 00000085h   
+VK_F23 . . . . . . . . . . . . .	Number	 00000086h   
+VK_F24 . . . . . . . . . . . . .	Number	 00000087h   
+VK_F2  . . . . . . . . . . . . .	Number	 00000071h   
+VK_F3  . . . . . . . . . . . . .	Number	 00000072h   
+VK_F4  . . . . . . . . . . . . .	Number	 00000073h   
+VK_F5  . . . . . . . . . . . . .	Number	 00000074h   
+VK_F6  . . . . . . . . . . . . .	Number	 00000075h   
+VK_F7  . . . . . . . . . . . . .	Number	 00000076h   
+VK_F8  . . . . . . . . . . . . .	Number	 00000077h   
+VK_F9  . . . . . . . . . . . . .	Number	 00000078h   
+VK_HELP  . . . . . . . . . . . .	Number	 0000002Fh   
+VK_HOME  . . . . . . . . . . . .	Number	 00000024h   
+VK_INSERT  . . . . . . . . . . .	Number	 0000002Dh   
+VK_LBUTTON . . . . . . . . . . .	Number	 00000001h   
+VK_LCONTROL  . . . . . . . . . .	Number	 000000A2h   
+VK_LEFT  . . . . . . . . . . . .	Number	 00000025h   
+VK_LMENU . . . . . . . . . . . .	Number	 000000A4h   
+VK_LSHIFT  . . . . . . . . . . .	Number	 000000A0h   
+VK_MENU  . . . . . . . . . . . .	Number	 00000012h   
+VK_MULTIPLY  . . . . . . . . . .	Number	 0000006Ah   
+VK_NEXT  . . . . . . . . . . . .	Number	 00000022h   
+VK_NUMLOCK . . . . . . . . . . .	Number	 00000090h   
+VK_NUMPAD0 . . . . . . . . . . .	Number	 00000060h   
+VK_NUMPAD1 . . . . . . . . . . .	Number	 00000061h   
+VK_NUMPAD2 . . . . . . . . . . .	Number	 00000062h   
+VK_NUMPAD3 . . . . . . . . . . .	Number	 00000063h   
+VK_NUMPAD4 . . . . . . . . . . .	Number	 00000064h   
+VK_NUMPAD5 . . . . . . . . . . .	Number	 00000065h   
+VK_NUMPAD6 . . . . . . . . . . .	Number	 00000066h   
+VK_NUMPAD7 . . . . . . . . . . .	Number	 00000067h   
+VK_NUMPAD8 . . . . . . . . . . .	Number	 00000068h   
+VK_NUMPAD9 . . . . . . . . . . .	Number	 00000069h   
+VK_PAUSE . . . . . . . . . . . .	Number	 00000013h   
+VK_PRINT . . . . . . . . . . . .	Number	 0000002Ah   
+VK_PRIOR . . . . . . . . . . . .	Number	 00000021h   
+VK_RBUTTON . . . . . . . . . . .	Number	 00000002h   
+VK_RCONTROL  . . . . . . . . . .	Number	 000000A3h   
+VK_RETURN  . . . . . . . . . . .	Number	 0000000Dh   
+VK_RIGHT . . . . . . . . . . . .	Number	 00000027h   
+VK_RMENU . . . . . . . . . . . .	Number	 000000A5h   
+VK_RSHIFT  . . . . . . . . . . .	Number	 000000A1h   
+VK_SCROLL  . . . . . . . . . . .	Number	 00000091h   
+VK_SEPARATER . . . . . . . . . .	Number	 0000006Ch   
+VK_SHIFT . . . . . . . . . . . .	Number	 00000010h   
+VK_SNAPSHOT  . . . . . . . . . .	Number	 0000002Ch   
+VK_SPACE . . . . . . . . . . . .	Number	 00000020h   
+VK_SUBTRACT  . . . . . . . . . .	Number	 0000006Dh   
+VK_TAB . . . . . . . . . . . . .	Number	 00000009h   
+VK_UP  . . . . . . . . . . . . .	Number	 00000026h   
+WINDOW_BUFFER_SIZE_EVENT . . . .	Number	 00000004h   
+WriteConsoleOutputCharacter  . .	Text   	 WriteConsoleOutputCharacterA
+WriteConsole . . . . . . . . . .	Text   	 WriteConsoleA
+availStatus  . . . . . . . . . .	Byte	 00000234 _DATA	
+black  . . . . . . . . . . . . .	Number	 00000000h   
+blankLine  . . . . . . . . . . .	Byte	 000000BB _DATA	
+blue . . . . . . . . . . . . . .	Number	 00000001h   
+brown  . . . . . . . . . . . . .	Number	 00000006h   
+curJobIndex  . . . . . . . . . .	DWord	 00000194 _DATA	
+curNameLngth . . . . . . . . . .	DWord	 0000024A _DATA	
+curPriSearch . . . . . . . . . .	DWord	 00000198 _DATA	
+cyan . . . . . . . . . . . . . .	Number	 00000003h   
+digits . . . . . . . . . . . . .	DWord	 0000023A _DATA	
+endofentry . . . . . . . . . . .	Byte	 00000193 _DATA	
+endofinput . . . . . . . . . . .	Byte	 000000FB _DATA	
+endofrecord  . . . . . . . . . .	Byte	 00000188 _DATA	
+endofstepprint . . . . . . . . .	Byte	 000001EC _DATA	
+entry  . . . . . . . . . . . . .	Byte	 00000189 _DATA	
+exit . . . . . . . . . . . . . .	Text   	 INVOKE ExitProcess,0
+finishedRun  . . . . . . . . . .	Byte	 000007D0 _DATA	
+gray . . . . . . . . . . . . . .	Number	 00000008h   
+green  . . . . . . . . . . . . .	Number	 00000002h   
+helpChange . . . . . . . . . . .	Byte	 00000498 _DATA	
+helpHelp . . . . . . . . . . . .	Byte	 00000309 _DATA	
+helpHold . . . . . . . . . . . .	Byte	 000003B7 _DATA	
+helpKill . . . . . . . . . . . .	Byte	 0000040C _DATA	
+helpLoad . . . . . . . . . . . .	Byte	 000004FD _DATA	
+helpQuit . . . . . . . . . . . .	Byte	 000002EF _DATA	
+helpRun  . . . . . . . . . . . .	Byte	 00000362 _DATA	
+helpShow . . . . . . . . . . . .	Byte	 00000328 _DATA	
+helpStep . . . . . . . . . . . .	Byte	 0000044B _DATA	
+holdStatus . . . . . . . . . . .	Byte	 00000233 _DATA	
+inputTime  . . . . . . . . . . .	DWord	 00000014 _DATA	
+input  . . . . . . . . . . . . .	Byte	 000000C9 _DATA	
+jobLabels  . . . . . . . . . . .	Byte	 000001FD _DATA	
+jobListFull  . . . . . . . . . .	Byte	 00000771 _DATA	
+jobNotFound  . . . . . . . . . .	Byte	 0000059E _DATA	
+jobTooLong . . . . . . . . . . .	Byte	 00000723 _DATA	
+lightBlue  . . . . . . . . . . .	Number	 00000009h   
+lightCyan  . . . . . . . . . . .	Number	 0000000Bh   
+lightGray  . . . . . . . . . . .	Number	 00000007h   
+lightGreen . . . . . . . . . . .	Number	 0000000Ah   
+lightMagenta . . . . . . . . . .	Number	 0000000Dh   
+lightRed . . . . . . . . . . . .	Number	 0000000Ch   
+loadTemp1  . . . . . . . . . . .	DWord	 0000023E _DATA	
+loadTemp2  . . . . . . . . . . .	DWord	 00000242 _DATA	
+loadTemp3  . . . . . . . . . . .	DWord	 00000246 _DATA	
+magenta  . . . . . . . . . . . .	Number	 00000005h   
+maxChars . . . . . . . . . . . .	DWord	 0000024E _DATA	
+menuPrompt . . . . . . . . . . .	Byte	 00000067 _DATA	
+mesgCHNG1  . . . . . . . . . . .	Byte	 00000864 _DATA	
+mesgCHNG2  . . . . . . . . . . .	Byte	 00000886 _DATA	
+mesgHOLD . . . . . . . . . . . .	Byte	 0000080E _DATA	
+mesgKILL . . . . . . . . . . . .	Byte	 00000835 _DATA	
+mesgLOAD . . . . . . . . . . . .	Byte	 00000891 _DATA	
+mesgRUN  . . . . . . . . . . . .	Byte	 000007E8 _DATA	
+mesgSTEP1  . . . . . . . . . . .	Byte	 000008BC _DATA	
+mesgSTEP2  . . . . . . . . . . .	Byte	 000008CF _DATA	
+newline  . . . . . . . . . . . .	Byte	 0000004A _DATA	
+noRecords  . . . . . . . . . . .	Byte	 000005F2 _DATA	
+notAvailable . . . . . . . . . .	Byte	 00000628 _DATA	
+notCommand . . . . . . . . . . .	Byte	 00000704 _DATA	
+notInHold  . . . . . . . . . . .	Byte	 00000640 _DATA	
+notPriority  . . . . . . . . . .	Byte	 00000669 _DATA	
+notRunTime . . . . . . . . . . .	Byte	 00000697 _DATA	
+notStatus  . . . . . . . . . . .	Byte	 000006C6 _DATA	
+notStep  . . . . . . . . . . . .	Byte	 00000799 _DATA	
+notUnique  . . . . . . . . . . .	Byte	 00000613 _DATA	
+pJob . . . . . . . . . . . . . .	Byte	 00000252 _DATA	
+pLoad  . . . . . . . . . . . . .	Byte	 000002AF _DATA	
+pPri . . . . . . . . . . . . . .	Byte	 0000026C _DATA	
+pRun . . . . . . . . . . . . . .	Byte	 0000028E _DATA	
+power  . . . . . . . . . . . . .	DWord	 000001F9 _DATA	
+recIndex . . . . . . . . . . . .	DWord	 00000018 _DATA	
+records  . . . . . . . . . . . .	Byte	 000000FC _DATA	
+red  . . . . . . . . . . . . . .	Number	 00000004h   
+runStatus  . . . . . . . . . . .	Byte	 00000235 _DATA	
+startPriority  . . . . . . . . .	Byte	 0000022E _DATA	
+startRuntime . . . . . . . . . .	Byte	 0000022F _DATA	
+startStarttime . . . . . . . . .	Byte	 00000231 _DATA	
+stepPrintBuffer  . . . . . . . .	DWord	 0000019C _DATA	
+stepPrintIndex . . . . . . . . .	DWord	 000001ED _DATA	
+systemClock  . . . . . . . . . .	DWord	 00000236 _DATA	
+temp1  . . . . . . . . . . . . .	DWord	 00000000 _DATA	
+temp2  . . . . . . . . . . . . .	DWord	 00000004 _DATA	
+temp3  . . . . . . . . . . . . .	DWord	 00000008 _DATA	
+temp4  . . . . . . . . . . . . .	DWord	 0000000C _DATA	
+temp5  . . . . . . . . . . . . .	DWord	 00000010 _DATA	
+tempResult . . . . . . . . . . .	DWord	 000001F1 _DATA	
+tooManyP . . . . . . . . . . . .	Byte	 000005B3 _DATA	
+welcome  . . . . . . . . . . . .	Byte	 0000004D _DATA	
+white  . . . . . . . . . . . . .	Number	 0000000Fh   
+wordLength . . . . . . . . . . .	DWord	 000001F5 _DATA	
+wsprintf . . . . . . . . . . . .	Text   	 wsprintfA
+yellow . . . . . . . . . . . . .	Number	 0000000Eh   
+
+	   0 Warnings
+	   0 Errors
