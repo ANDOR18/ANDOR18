@@ -1,0 +1,31 @@
+Phase 1:
+Finish player char
+	-Movement
+	-Shooting
+	-Die
+		-Crash
+		-Laser
+	-Screen Wrapping
+
+	-*Accelerates the more players move/longer game lasts
+	-*Each player cant cross their side of screen
+
+Phase 2.5:
+GUI
+
+Phase 2:
+Clone player char for multiplayer
+	-Remap controls
+	-Make sure both players interact properly with eachother
+
+Phase 3:
+Map creation (need at least 2 maps)
+	-Implement collision detection with walls
+	-Asteroids can appear from the top/bottom
+	-Turrets on walls
+	-Powerup: Player has their own turret on a wall
+
+Bonus Phase:
+Online Multiplayer
+	---------------
+	
