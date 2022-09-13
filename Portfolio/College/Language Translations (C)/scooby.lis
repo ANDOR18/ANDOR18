@@ -1,0 +1,9 @@
+1. begin
+2. 
+3. X := 2 - 1;
+4. WRITE(X);
+5. end
+
+
+Input file compiled without errors
+Total number of lexical errors: 0		Total number of syntax errors: 0
