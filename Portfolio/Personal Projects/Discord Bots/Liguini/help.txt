@@ -1,0 +1,10 @@
+```
+!help - i list-a all the commands you can-a use
+!hello - i say-a 'ciao' to you
+!talk - i talk-a to you in-a vc
+!ini - i append-a 'ini' to the end of-a pinged-a user's name
+!pasta - i search-a the google for the pasta
+!pizza - i search-a the google for the pizza
+!sing - i play-a youtube-a song from-a link
+!repeat - i toggle whether i repeat-a song from a youtube link
+```
