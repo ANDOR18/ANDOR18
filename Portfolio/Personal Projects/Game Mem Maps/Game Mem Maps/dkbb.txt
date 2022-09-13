@@ -1,0 +1,94 @@
+DK Barrel Blast mem map
+
+	Boolean (single byte) button press check:
+
+		[Wiimote]
+		'A'     80487b7d
+		'B'     80487b91
+		'1'     80487ba5
+		'2'     80487bb9
+		'-'     80487c09
+		'+'     80487bf5
+		'Up'    80487c81
+		'Down'  80487c95
+		'Left'  80487ca9
+		'Right' 80487cbd
+		
+		[Nunchuk]
+		'C'     80487bcd
+		'Z'     80487be1
+		
+
+	1st known wii input location (two bytes):
+
+		buttons 803c4ce0
+		
+		[Wiimote]
+		shake x 803c4ce2
+		shake y 803c4ce4
+		shake z 803c4ce6
+		
+		[Nunchuk]
+		shake x 803c4d0a
+		shake y 803c4d0c
+		shake z 803c4d0e
+
+
+	All 30 known locations where wii button input is stored:
+	(Wiimote shake is 2 bytes after)
+	(Nunchuk shake is 42 bytes after, prefaced with a value of '0100' 2 bytes before)
+
+		803c4ce0
+		803c4d40
+		803c4da0
+		803c91c2
+		803c92d0
+		803c9308
+		803c9340
+		803c9378
+		803c93b0
+		803c93e8
+		803c9420
+		803c9458
+		803c9490
+		803c94c8
+		803c9500
+		803c9538
+		803c9570
+		803c95a8
+		803c95e0
+		803c9618
+		80483556
+		804835da
+		8048365e
+		804836e2
+		80485656
+		804856da
+		8048575e
+		804857e2
+		80487756
+		80487966
+		
+
+	Bool that stores 1 if any wiimote is connected:
+
+		803bb5da
+		803bba85
+		803bea08
+
+ 
+	Value that starts at 0 and accumulates by 1 for every wiimote connected:
+
+		803bb621
+		803bb935
+		803bf1b9
+		803c7ac4
+		803c7ac5
+
+
+8000401c?
+80020490?
+
+
+
+

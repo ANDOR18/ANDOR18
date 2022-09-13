@@ -1,0 +1,10 @@
+PBR mem research
+
+
+80c4d440 - Starting Pokemon model (double battle, left slot), indexed by it's dex#
+80c42ade - Transitioning pokemon model
+80c4d444 - Shiny (left slot/default)
+80c4d4ac - Shiny (right slot)
+80c4d4a8 - starting pokemon model right slot
+
+8044b1d5 - 8044c1a7 Pokemon names
