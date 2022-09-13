@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29728.190
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AssemblyCalculator", "AssemblyCalculator.vcxproj", "{B467F2C8-D7BE-44C4-8B72-39FBCBF52C8C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x86 = Debug|x86
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B467F2C8-D7BE-44C4-8B72-39FBCBF52C8C}.Debug|x86.ActiveCfg = Debug|Win32
+		{B467F2C8-D7BE-44C4-8B72-39FBCBF52C8C}.Debug|x86.Build.0 = Debug|Win32
+		{B467F2C8-D7BE-44C4-8B72-39FBCBF52C8C}.Release|x86.ActiveCfg = Release|Win32
+		{B467F2C8-D7BE-44C4-8B72-39FBCBF52C8C}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {0C217126-F12D-473D-A223-C2F4BA0AF23D}
+	EndGlobalSection
+EndGlobal
