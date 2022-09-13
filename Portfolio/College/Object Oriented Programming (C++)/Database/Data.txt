@@ -1,0 +1,93 @@
+Slot 0:
+1000
+ANDOR
+19
+
+Slot 1:
+1001
+Jim
+18
+
+Slot 2:
+1002
+Ji
+10
+
+Slot 3:
+1003
+J
+14
+
+Slot 4:
+1004
+imbo
+12
+
+Slot 5:
+1005
+Jibo
+16
+
+Slot 6:
+1006
+Jimbo
+19
+
+Slot 7:
+1007
+Jimbo
+19
+
+Slot 8:
+1008
+Jimbo
+19
+
+Slot 9:
+1009
+Jimbo
+19
+
+Slot 10:
+1010
+Jimbo
+19
+
+Slot 11:
+1011
+Jimbo
+19
+
+Slot 12:
+1012
+Jimbo
+19
+
+Slot 13:
+1013
+Jimbo
+19
+
+Slot 14:
+Empty
+
+Slot 15:
+1015
+Jimbo
+19
+
+Slot 16:
+1016
+Jimbo
+19
+
+Slot 17:
+1017
+Jimbo
+19
+
+Slot 18:
+1018
+Jimbo
+19
+
