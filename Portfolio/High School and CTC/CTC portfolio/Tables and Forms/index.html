@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tables and Forms</title>
+</head>
+<style type="text/css">
+body{font-family:"Gill Sans", "Gill Sans MT", "Myriad Pro", "DejaVu Sans Condensed", Helvetica, Arial, sans-serif
+;font-size:14px;background-image:url(img/COLOURlovers.com-Nintendo_controller.png);}
+
+#main{width:800px;border:1px solid #EC1A1D;margin:auto;background:#939C95;padding-top:10px;text-align:center;color:blue}
+
+table{border:1px solid blue;border-collapse:collapse;background-color:#636C67;font-size:28px;}
+
+
+li{list-style:none;padding-top:10px;margin:auto;}
+
+td{border:1px solid blue;width:80px;height:80px;}
+
+a{margin-left:15px;}
+
+textarea{resize:none;border:1px solid black;border-radius:10px}
+
+caption{font-family: Papyrus, sans-serif;}
+
+input[type=submit] {border-radius:10px;background-color:#21FF2C}
+
+input[type=reset] {border-radius:10px;background-color:#FF2E31}
+
+</style>
+<body>
+<div id="main">
+<table>
+<tr>
+<caption>Information tech. Outook</caption>
+<th scope="col">Careers</th> <th scope="col">Median Wages</th> <th scope="col">Employment</th> <th scope="col">Projected Growth</th>
+<th scope="col">Projected Job Openings</th>
+</tr>
+<tr>
+<th scope="row">Video Game Designers</th> <td>$40.10 hourly, $83,410 annual</td> <td>233,000 employees</td> <td>Slower than average (2% to 4%)</td> <td>37,700</td>
+</tr>
+<tr>
+<th scope="row">Software Developers, Applications</th>
+<td>$45.92 hourly, $95,510 annual</td> <td>718,000 employees</td> <td>Much faster than average (14% or higher)</td> <td>238,000</td> 
+</tr>
+<tr>
+<th scope="row">Web Developers</th>
+<td>$30.52 hourly, $63,490 annual</td> <td>149,000 employees</td> <td>Much faster than average (14% or higher)</td> <td>58,600</td>
+</tr>
+<tfoot><a href="http://www.onetonline.org/link/summary/15-1199.11">Game Designers Source</a>
+<a href="http://www.onetonline.org/link/summary/15-1134.00">Web Developers Source</a>
+<a href="http://www.onetonline.org/link/summary/15-1132.00">Software Developers Source</a>
+</table>
+
+<form id="feedback" method="post" action="feedback.php">
+<ul>
+<li> <label for="firstnam">First Name:</label> <input type="text" name="firstname"/></li>
+<li> <label for="lastnam">Last Name:</label><input type="text" name="lastname"/></li>
+<li><label for="email">e-mail:</label><input type="email" name="email" placeholder="name@exampe.com"/></li>
+
+<li>Check here to accept our usage agreement:</li>
+    <li><label for="Sure">Sure</label> <input type="checkbox"></li>
+<li><label for="Comments">Comments:</label> <textarea name="comments" cols="100" rows="8"></textarea></li>
+<li>Check here to make an appointment to see our career councilors:</li>
+    <li><label for="Sure">Sure</label> <input type="checkbox"></li>
+    
+<li>Preferred appointment Date:
+  <input type="date" name="apptdate"></li>
+  
+<li><input type="text" list="moreinfo" placeholder="Want more info?">
+<datalist id="moreinfo">
+    <option label="gamedes" value="Game Designers"></option>
+    <option label="softdev" value="Software Developers"></option>
+    <option label="webdev" value="Web Developers"></option>
+</datalist></li>
+</ul>
+<ul>
+<h4>Interest in Game Design?</h4>
+<li><input type="number" min="1" max="10" step="1" value="1"></li>
+<h4>Interest in Web Development?</h4>
+<li><input type="number" min="1" max="10" step="1" value="1"></li>
+<h4>Interest in Software Development?</h4>
+<li><input type="number" min="1" max="10" step="1" value="1"></li>
+
+<h3>How would you rate your satisfaction with this website?</h3>
+<input type="radio" name="satisfaction" value="five">very satisfied
+<input type="radio" name="satisfaction" value="four">satisfied
+<input type="radio" name="satisfaction" value="three">somewhat satisfied
+<input type="radio" name="satisfaction" value="two">somewhat unsatisfied
+<input type="radio" name="satisfaction" value="one">unsatisfied
+
+<li><input type="submit" value="submit"/></li>
+<li><input type="reset" value="reset"/></li>
+</ul>
+</form>
+
+</div>
+
+
+
+
+
+</body>
+</html>
