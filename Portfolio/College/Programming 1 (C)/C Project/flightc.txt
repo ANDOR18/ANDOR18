@@ -1,0 +1,10 @@
+1234 Pittsburgh Phoenix 04/02/19 10:30am 108
+4567 Boston New_York 04/03/19 18:10am 210
+9876 Pittsburgh Seattle 04/04/19 1:30pm 110
+8888 Chicago Pittsburgh 04/05/19 2:45pm 106
+7777 Pittsburgh Miami 04/06/19 9:35am 116
+2892 Las_Vegas New_York 04/07/19 8:10pm 107
+4444 Pittsburgh San_Francisco 04/19/18 5:55pm 124
+2222 Atlanta New_York 04/09/19 4:30pm 110
+9281 Pittsburgh Seattle 04/11/19 2:15pm 216
+1000 Pittsburgh Phoenix 04/12/19 3:25pm 150
